@@ -13,7 +13,6 @@ import {
   where, 
   onSnapshot 
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-import { saveToIndexedDB, getPendingSubmissions, deleteSubmission } from '../storage-firebase.js';
 
 // --- DOM Elements ---
 const video = document.getElementById('video');
@@ -38,8 +37,8 @@ let attendanceData = { locationName: null, latitude: null, longitude: null };
 // --- Service Worker ---
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/service-worker.js').then(
-    reg => console.log('SW OK', reg),
-    err => console.log('SW Fail', err)
+    reg => console.log('✅ Service Worker terdaftar:', reg),
+    err => console.log('❌ Gagal daftar SW:', err)
   );
 }
 
@@ -66,7 +65,6 @@ async function handleAuth() {
       startBtn.disabled = false;
       await checkClockStatus(user.uid);
       loadUserHistory(user.uid);
-      syncData();
       updateStatus(`Terhubung sebagai ${user.uid.slice(-4)}. Siap untuk ${isClockedIn ? 'Absen Pulang' : 'Absen Masuk'}`);
     } else {
       currentUserId = null;
@@ -143,6 +141,7 @@ async function startCamera() {
   if (streamInstance) streamInstance.getTracks().forEach(t => t.stop());
   streamInstance = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }});
   video.srcObject = streamInstance;
+  videoPlaceholder.classList.add('hidden');
 }
 
 // --- Capture photo ---
@@ -176,25 +175,17 @@ async function submitAttendance() {
     await addDoc(collection(db, getCollectionPath()), { ...data, timestamp: serverTimestamp() });
     updateStatus(`Absensi ${type} berhasil dikirim!`);
     isClockedIn = !isClockedIn;
-  } catch {
-    await saveToIndexedDB(data);
-    updateStatus("Offline. Data disimpan lokal.");
+  } catch (err) {
+    console.error("Gagal kirim absensi:", err);
+    updateStatus("Gagal mengirim absensi. Periksa koneksi internet.");
   }
   submitBtn.classList.add('hidden');
   resetBtn.classList.remove('hidden');
 }
 
-// --- Sync offline data ---
+// --- Sync offline data (dinonaktifkan) ---
 async function syncData() {
-  const pend = await getPendingSubmissions();
-  if (!pend.length) return;
-  for (const item of pend) {
-    try {
-      await addDoc(collection(db, getCollectionPath()), { ...item, timestamp: serverTimestamp() });
-      await deleteSubmission(item.id);
-      updateStatus(`Sinkronisasi ${item.id} selesai`);
-    } catch { break; }
-  }
+  console.log("Sinkronisasi offline dinonaktifkan (tidak pakai storage-firebase.js)");
 }
 
 // --- Reset UI ---
@@ -218,7 +209,8 @@ startBtn.addEventListener('click', async () => {
 captureBtn.addEventListener('click', capturePhoto);
 submitBtn.addEventListener('click', submitAttendance);
 resetBtn.addEventListener('click', resetUI);
-window.addEventListener('online', () => { offlineStatus.classList.add('hidden'); syncData(); });
+window.addEventListener('online', () => offlineStatus.classList.add('hidden'));
 window.addEventListener('offline', () => offlineStatus.classList.remove('hidden'));
 
+// --- Inisialisasi utama ---
 handleAuth();
