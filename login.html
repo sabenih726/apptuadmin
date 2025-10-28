@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Karyawan</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-white font-mono flex items-center justify-center min-h-screen">
+  <div class="bg-gray-900 border border-gray-700 rounded-md p-6 w-full max-w-sm">
+    <h1 class="text-xl font-bold mb-6 text-center">Login Karyawan</h1>
+    <input id="email" type="email" placeholder="Email"
+           class="w-full mb-3 px-3 py-2 rounded bg-gray-800 border border-gray-700" />
+    <input id="password" type="password" placeholder="Kata sandi"
+           class="w-full mb-5 px-3 py-2 rounded bg-gray-800 border border-gray-700" />
+    <button id="login-btn"
+            class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded font-bold">
+      Masuk
+    </button>
+    <p id="login-status" class="text-sm text-gray-400 mt-4 text-center"></p>
+  </div>
+
+  <script type="module" src="password-auth.js"></script>
+</body>
+</html>
