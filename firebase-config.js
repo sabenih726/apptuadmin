@@ -16,9 +16,9 @@ export const getCollectionPath = () => {
     return `absensi`; // Simplified path for Firestore
 };
 
-// Alternative collection paths if you want to use different structure
-export const collections = {
+// Alternative paths if needed
+export const paths = {
     absensi: 'absensi',
-    employees: 'employees',
-    admins: 'admins'
+    users: 'users',
+    pending: 'pending_absensi'
 };
