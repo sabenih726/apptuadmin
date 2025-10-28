@@ -16,9 +16,7 @@ export const getCollectionPath = () => {
     return `absensi`; // Simplified path for Firestore
 };
 
-// Alternative paths if needed
-export const paths = {
-    absensi: 'absensi',
-    users: 'users',
-    pending: 'pending_absensi'
+// Alternative path jika menggunakan struktur artifacts
+export const getArtifactsPath = () => {
+    return `/artifacts/${appId}/public/data/absensi`;
 };
