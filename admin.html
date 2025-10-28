@@ -4,101 +4,698 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Admin - Absensi Karyawan</title>
-
+  
   <!-- TailwindCSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-
+  
+  <!-- Chart.js untuk Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Font Awesome untuk Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
   <!-- Font -->
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
-
-  <!-- Manifest (PWA) -->
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#000000">
-
+  
+  <!-- Custom CSS -->
   <style>
     body {
       font-family: 'IBM Plex Mono', monospace;
-      background-color: #0f172a;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
       color: #e2e8f0;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    
+    .glass-effect {
+      background: rgba(30, 41, 59, 0.5);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(148, 163, 184, 0.1);
     }
-    th, td {
-      padding: 0.5rem 0.75rem;
-      border-bottom: 1px solid #334155;
+    
+    .animate-pulse-slow {
+      animation: pulse 3s ease-in-out infinite;
     }
-    th {
-      background-color: #1e293b;
-      text-align: left;
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .status-hadir { background: #10b981; color: white; }
+    .status-izin { background: #f59e0b; color: white; }
+    .status-sakit { background: #ef4444; color: white; }
+    
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col items-center p-6">
+<body class="min-h-screen">
 
-  <!-- HEADER -->
-  <header class="w-full max-w-5xl flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold text-indigo-400 flex items-center gap-2">
-      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 3h18v18H3z"></path><path d="M3 9h18"></path>
-      </svg>
-      Dashboard Admin
-    </h1>
-    <a href="index.html" class="text-sm text-gray-400 hover:text-indigo-400">← Kembali</a>
-  </header>
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-slate-800 rounded-lg p-6 flex items-center space-x-3">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+      <span class="text-white">Memuat data...</span>
+    </div>
+  </div>
 
-  <!-- MAIN GRID -->
-  <main class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl">
-
-    <!-- Bagian kiri: Tabel Riwayat -->
-    <section class="bg-slate-800 rounded-2xl shadow-lg p-5 overflow-hidden">
-      <h2 class="text-lg font-semibold text-indigo-300 mb-3 border-b border-slate-600 pb-2">Riwayat Absensi</h2>
-      <div class="overflow-y-auto max-h-[70vh]">
-        <table>
-          <thead class="sticky top-0 bg-slate-700 text-indigo-200">
-            <tr>
-              <th>Waktu</th>
-              <th>Status</th>
-              <th>User</th>
-              <th>Lokasi</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="attendance-table-body">
-            <tr><td colspan="5" align="center" class="text-gray-400 py-4">Memuat data...</td></tr>
-          </tbody>
-        </table>
+  <!-- Navigation Bar -->
+  <nav class="glass-effect sticky top-0 z-40 px-6 py-4 border-b border-slate-700">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-4">
+        <h1 class="text-2xl font-bold text-indigo-400 flex items-center gap-2">
+          <i class="fas fa-chart-line"></i>
+          Dashboard Admin
+        </h1>
+        <span id="live-indicator" class="animate-pulse-slow text-green-400 text-sm">
+          <i class="fas fa-circle text-xs"></i> LIVE
+        </span>
       </div>
-    </section>
-
-    <!-- Bagian kanan: Detail Foto -->
-    <section class="bg-slate-800 rounded-2xl shadow-lg p-5 flex flex-col items-center">
-      <h2 class="text-lg font-semibold text-indigo-300 mb-3 border-b border-slate-600 pb-2 w-full text-center">Detail Absensi</h2>
-
-      <div id="no-photo-msg" class="text-gray-500 italic text-center my-6">Pilih data absensi untuk melihat detail.</div>
-
-      <img id="verification-photo" class="hidden rounded-lg shadow-md w-64 h-48 object-cover mb-4" alt="Foto absensi">
-
-      <div class="text-sm text-gray-300 space-y-2 text-center">
-        <p id="verif-status" class="font-semibold text-indigo-300"></p>
-        <p id="verif-time"></p>
-        <p id="verif-coords" class="text-gray-400"></p>
-        <a id="verif-map-link" href="#" target="_blank" class="text-blue-400 hover:text-blue-300 underline">Lihat di Google Maps</a>
+      
+      <div class="flex items-center gap-4">
+        <!-- User Info -->
+        <div class="text-right hidden md:block">
+          <p class="text-sm text-gray-400">Admin</p>
+          <p id="admin-email" class="text-xs text-gray-500">admin@company.com</p>
+        </div>
+        
+        <!-- Action Buttons -->
+        <button onclick="exportToExcel()" class="btn-icon" title="Export Excel">
+          <i class="fas fa-file-excel"></i>
+        </button>
+        
+        <button onclick="refreshData()" class="btn-icon" title="Refresh">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+        
+        <button onclick="logout()" class="btn-icon text-red-400" title="Logout">
+          <i class="fas fa-sign-out-alt"></i>
+        </button>
       </div>
-    </section>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto p-6">
+    
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="glass-effect rounded-xl p-4 border-l-4 border-green-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="text-gray-400 text-sm">Hadir Hari Ini</p>
+            <p id="stat-present" class="text-3xl font-bold text-green-400">0</p>
+          </div>
+          <i class="fas fa-user-check text-green-500 text-2xl opacity-50"></i>
+        </div>
+      </div>
+      
+      <div class="glass-effect rounded-xl p-4 border-l-4 border-yellow-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="text-gray-400 text-sm">Izin</p>
+            <p id="stat-permit" class="text-3xl font-bold text-yellow-400">0</p>
+          </div>
+          <i class="fas fa-user-clock text-yellow-500 text-2xl opacity-50"></i>
+        </div>
+      </div>
+      
+      <div class="glass-effect rounded-xl p-4 border-l-4 border-red-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="text-gray-400 text-sm">Tidak Hadir</p>
+            <p id="stat-absent" class="text-3xl font-bold text-red-400">0</p>
+          </div>
+          <i class="fas fa-user-times text-red-500 text-2xl opacity-50"></i>
+        </div>
+      </div>
+      
+      <div class="glass-effect rounded-xl p-4 border-l-4 border-blue-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="text-gray-400 text-sm">Total Karyawan</p>
+            <p id="stat-total" class="text-3xl font-bold text-blue-400">0</p>
+          </div>
+          <i class="fas fa-users text-blue-500 text-2xl opacity-50"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="glass-effect rounded-xl p-4 mb-6">
+      <div class="flex flex-wrap gap-3 items-center">
+        <input type="date" id="filter-date" class="input-field" 
+               onchange="filterData()">
+        
+        <select id="filter-status" class="input-field" onchange="filterData()">
+          <option value="">Semua Status</option>
+          <option value="hadir">Hadir</option>
+          <option value="izin">Izin</option>
+          <option value="sakit">Sakit</option>
+        </select>
+        
+        <input type="text" id="search-box" placeholder="Cari nama..." 
+               class="input-field flex-1" onkeyup="searchData()">
+        
+        <button onclick="clearFilters()" class="btn-secondary">
+          <i class="fas fa-times mr-2"></i>Clear
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Left Panel: Attendance Table -->
+      <div class="lg:col-span-2 glass-effect rounded-xl overflow-hidden">
+        <div class="p-4 border-b border-slate-700">
+          <h2 class="text-lg font-semibold text-indigo-300 flex items-center gap-2">
+            <i class="fas fa-list"></i>
+            Riwayat Absensi
+          </h2>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-slate-800 text-indigo-200">
+              <tr>
+                <th class="px-4 py-3 text-left">Waktu</th>
+                <th class="px-4 py-3 text-left">Nama</th>
+                <th class="px-4 py-3 text-left">Status</th>
+                <th class="px-4 py-3 text-left">Lokasi</th>
+                <th class="px-4 py-3 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="attendance-table-body" class="divide-y divide-slate-700">
+              <!-- Data akan diisi oleh JavaScript -->
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="p-4 border-t border-slate-700 flex justify-between items-center">
+          <span class="text-sm text-gray-400">
+            Menampilkan <span id="showing-start">0</span>-<span id="showing-end">0</span> 
+            dari <span id="total-records">0</span> data
+          </span>
+          <div class="flex gap-2">
+            <button onclick="prevPage()" class="btn-pagination">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <span id="page-info" class="px-3 py-1 text-sm">1</span>
+            <button onclick="nextPage()" class="btn-pagination">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Detail & Analytics -->
+      <div class="space-y-6">
+        
+        <!-- Detail Card -->
+        <div class="glass-effect rounded-xl p-4">
+          <h3 class="text-lg font-semibold text-indigo-300 mb-4 flex items-center gap-2">
+            <i class="fas fa-info-circle"></i>
+            Detail Absensi
+          </h3>
+          
+          <div id="detail-content" class="space-y-3">
+            <div id="no-selection" class="text-center py-8 text-gray-500">
+              <i class="fas fa-mouse-pointer text-4xl mb-3 opacity-50"></i>
+              <p>Pilih data untuk melihat detail</p>
+            </div>
+            
+            <div id="detail-info" class="hidden">
+              <img id="detail-photo" class="w-full rounded-lg mb-4" alt="Foto">
+              
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Nama:</span>
+                  <span id="detail-name" class="font-semibold"></span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Waktu:</span>
+                  <span id="detail-time"></span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Status:</span>
+                  <span id="detail-status"></span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Koordinat:</span>
+                  <span id="detail-coords" class="text-xs"></span>
+                </div>
+              </div>
+              
+              <div class="mt-4 flex gap-2">
+                <a id="map-link" href="#" target="_blank" 
+                   class="btn-primary flex-1 text-center">
+                  <i class="fas fa-map-marker-alt mr-2"></i>Lokasi
+                </a>
+                <button onclick="verifyAttendance()" class="btn-success flex-1">
+                  <i class="fas fa-check mr-2"></i>Verifikasi
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mini Chart -->
+        <div class="glass-effect rounded-xl p-4">
+          <h3 class="text-lg font-semibold text-indigo-300 mb-4 flex items-center gap-2">
+            <i class="fas fa-chart-pie"></i>
+            Statistik Hari Ini
+          </h3>
+          <canvas id="attendanceChart" width="400" height="200"></canvas>
+        </div>
+      </div>
+    </div>
   </main>
 
-  <!-- FOOTER -->
-  <footer class="mt-8 text-xs text-gray-500">
-    &copy; <span id="year"></span> Sistem Absensi • Dibangun dengan Firebase
-  </footer>
+  <!-- Custom CSS for new elements -->
+  <style>
+    .input-field {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      outline: none;
+      transition: all 0.3s;
+    }
+    
+    .input-field:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    
+    .btn-icon {
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      transition: all 0.3s;
+      background: transparent;
+    }
+    
+    .btn-icon:hover {
+      background: rgba(99, 102, 241, 0.1);
+    }
+    
+    .btn-primary {
+      background: #6366f1;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary:hover {
+      background: #4f46e5;
+    }
+    
+    .btn-secondary {
+      background: #475569;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    .btn-success {
+      background: #10b981;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    .btn-pagination {
+      padding: 0.25rem 0.75rem;
+      background: #334155;
+      color: white;
+      border-radius: 0.25rem;
+      transition: all 0.3s;
+    }
+    
+    .btn-pagination:hover {
+      background: #475569;
+    }
+  </style>
 
-  <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
+  <!-- Enhanced JavaScript -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+    import { 
+      getFirestore, 
+      collection, 
+      onSnapshot, 
+      query, 
+      orderBy, 
+      limit,
+      where,
+      getDocs 
+    } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+    import { 
+      getAuth, 
+      onAuthStateChanged,
+      signOut 
+    } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+
+    // Firebase configuration
+    const firebaseConfig = {
+      // Your Firebase config
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // Global variables
+    let allAttendanceData = [];
+    let filteredData = [];
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    let attendanceChart = null;
+
+    // Auth check
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById('admin-email').textContent = user.email;
+        initializeDashboard();
+      } else {
+        window.location.href = 'login.html';
+      }
+    });
+
+    // Initialize Dashboard
+    function initializeDashboard() {
+      loadAttendanceData();
+      initializeChart();
+      setInterval(updateLiveIndicator, 1000);
+    }
+
+    // Load attendance data with real-time updates
+    function loadAttendanceData() {
+      showLoading(true);
+      
+      const q = query(
+        collection(db, 'attendance'),
+        orderBy('timestamp', 'desc'),
+        limit(100)
+      );
+
+      onSnapshot(q, (snapshot) => {
+        allAttendanceData = [];
+        snapshot.forEach((doc) => {
+          allAttendanceData.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+        
+        filteredData = [...allAttendanceData];
+        updateDisplay();
+        updateStatistics();
+        showLoading(false);
+      });
+    }
+
+    // Update display
+    function updateDisplay() {
+      const tbody = document.getElementById('attendance-table-body');
+      const start = (currentPage - 1) * itemsPerPage;
+      const end = start + itemsPerPage;
+      const pageData = filteredData.slice(start, end);
+
+      tbody.innerHTML = pageData.map(item => `
+        <tr class="hover:bg-slate-800 cursor-pointer transition-colors" 
+            onclick="showDetail('${item.id}')">
+          <td class="px-4 py-3 text-sm">
+            ${formatDateTime(item.timestamp)}
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-2">
+              <img src="${item.photoURL || '/api/placeholder/32/32'}" 
+                   class="w-8 h-8 rounded-full" alt="">
+              <span>${item.userName || 'Guest'}</span>
+            </div>
+          </td>
+          <td class="px-4 py-3">
+            <span class="status-badge status-${item.status}">
+              ${item.status.toUpperCase()}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-sm text-gray-400">
+            ${item.location ? item.location.city || 'Unknown' : 'N/A'}
+          </td>
+          <td class="px-4 py-3 text-center">
+            <button onclick="event.stopPropagation(); deleteRecord('${item.id}')" 
+                    class="text-red-400 hover:text-red-300">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      // Update pagination info
+      document.getElementById('showing-start').textContent = start + 1;
+      document.getElementById('showing-end').textContent = Math.min(end, filteredData.length);
+      document.getElementById('total-records').textContent = filteredData.length;
+      document.getElementById('page-info').textContent = `${currentPage} / ${Math.ceil(filteredData.length / itemsPerPage)}`;
+    }
+
+    // Update statistics
+    function updateStatistics() {
+      const today = new Date().toDateString();
+      const todayData = allAttendanceData.filter(item => 
+        new Date(item.timestamp?.toDate()).toDateString() === today
+      );
+
+      const stats = {
+        present: todayData.filter(item => item.status === 'hadir').length,
+        permit: todayData.filter(item => item.status === 'izin').length,
+        absent: todayData.filter(item => item.status === 'sakit').length,
+        total: todayData.length
+      };
+
+      document.getElementById('stat-present').textContent = stats.present;
+      document.getElementById('stat-permit').textContent = stats.permit;
+      document.getElementById('stat-absent').textContent = stats.absent;
+      document.getElementById('stat-total').textContent = stats.total;
+
+      updateChart(stats);
+    }
+
+    // Initialize Chart
+    function initializeChart() {
+      const ctx = document.getElementById('attendanceChart').getContext('2d');
+      attendanceChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Hadir', 'Izin', 'Tidak Hadir'],
+          datasets: [{
+            data: [0, 0, 0],
+            backgroundColor: [
+              '#10b981',
+              '#f59e0b',
+              '#ef4444'
+            ],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#e2e8f0',
+                padding: 10,
+                font: {
+                  size: 11
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Update Chart
+    function updateChart(stats) {
+      if (attendanceChart) {
+        attendanceChart.data.datasets[0].data = [
+          stats.present,
+          stats.permit,
+          stats.absent
+        ];
+        attendanceChart.update();
+      }
+    }
+
+    // Show detail
+    window.showDetail = function(id) {
+      const item = allAttendanceData.find(a => a.id === id);
+      if (!item) return;
+
+      document.getElementById('no-selection').classList.add('hidden');
+      document.getElementById('detail-info').classList.remove('hidden');
+      
+      document.getElementById('detail-photo').src = item.photoURL || '/api/placeholder/300/200';
+      document.getElementById('detail-name').textContent = item.userName || 'Guest';
+      document.getElementById('detail-time').textContent = formatDateTime(item.timestamp);
+      document.getElementById('detail-status').innerHTML = `
+        <span class="status-badge status-${item.status}">${item.status.toUpperCase()}</span>
+      `;
+      document.getElementById('detail-coords').textContent = 
+        item.location ? `${item.location.lat}, ${item.location.lng}` : 'N/A';
+      
+      if (item.location) {
+        document.getElementById('map-link').href = 
+          `https://maps.google.com/?q=${item.location.lat},${item.location.lng}`;
+      }
+    };
+
+    // Filter functions
+    window.filterData = function() {
+      const dateFilter = document.getElementById('filter-date').value;
+      const statusFilter = document.getElementById('filter-status').value;
+      
+      filteredData = allAttendanceData.filter(item => {
+        let match = true;
+        
+        if (dateFilter) {
+          const itemDate = new Date(item.timestamp?.toDate()).toDateString();
+          const filterDate = new Date(dateFilter).toDateString();
+          match = match && (itemDate === filterDate);
+        }
+        
+        if (statusFilter) {
+          match = match && (item.status === statusFilter);
+        }
+        
+        return match;
+      });
+      
+      currentPage = 1;
+      updateDisplay();
+    };
+
+    window.searchData = function() {
+      const searchTerm = document.getElementById('search-box').value.toLowerCase();
+      
+      filteredData = allAttendanceData.filter(item => 
+        (item.userName || 'guest').toLowerCase().includes(searchTerm)
+      );
+      
+      currentPage = 1;
+      updateDisplay();
+    };
+
+    window.clearFilters = function() {
+      document.getElementById('filter-date').value = '';
+      document.getElementById('filter-status').value = '';
+      document.getElementById('search-box').value = '';
+      filteredData = [...allAttendanceData];
+      currentPage = 1;
+      updateDisplay();
+    };
+
+    // Pagination
+    window.prevPage = function() {
+      if (currentPage > 1) {
+        currentPage--;
+        updateDisplay();
+      }
+    };
+
+    window.nextPage = function() {
+      const maxPage = Math.ceil(filteredData.length / itemsPerPage);
+      if (currentPage < maxPage) {
+        currentPage++;
+        updateDisplay();
+      }
+    };
+
+    // Export to Excel
+    window.exportToExcel = function() {
+      // Implementation for Excel export
+      const csvContent = "data:text/csv;charset=utf-8," 
+        + "Waktu,Nama,Status,Lokasi\n"
+        + filteredData.map(item => 
+            `${formatDateTime(item.timestamp)},${item.userName || 'Guest'},${item.status},${item.location?.city || 'N/A'}`
+          ).join("\n");
+      
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `attendance_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    // Refresh data
+    window.refreshData = function() {
+      loadAttendanceData();
+    };
+
+    // Logout
+    window.logout = function() {
+      if (confirm('Apakah Anda yakin ingin keluar?')) {
+        signOut(auth).then(() => {
+          window.location.href = 'login.html';
+        });
+      }
+    };
+
+    // Helper functions
+    function formatDateTime(timestamp) {
+      if (!timestamp) return 'N/A';
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function showLoading(show) {
+      document.getElementById('loading-overlay').classList.toggle('hidden', !show);
+    }
+
+    function updateLiveIndicator() {
+      const indicator = document.getElementById('live-indicator');
+      indicator.style.opacity = indicator.style.opacity === '1' ? '0.5' : '1';
+    }
   </script>
-
-  <!-- Script utama admin -->
-  <script type="module" src="js/admin-app.js"></script>
 </body>
 </html>
