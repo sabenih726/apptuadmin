@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absensi Karyawan</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#000000">
+  <link rel="stylesheet" href="styles/employee.css">
+</head>
+
+<body class="flex flex-col items-center justify-start min-h-screen p-4">
+
+  <div class="card w-full max-w-md p-6 shadow-lg mb-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-700">
+      <h1 class="text-xl font-bold text-white flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round"
+             stroke-linejoin="round" class="mr-2">
+          <path d="M12 2a10 10 0 100 20 10 10 0 000-20z"></path>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        Absensi Karyawan
+      </h1>
+      <span id="user-status" class="text-xs text-gray-500">Menghubungkan...</span>
+    </div>
+
+    <!-- Status -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-400 mb-2">Status Proses</label>
+      <div id="status-container" class="status-display text-gray-300">
+        <p id="status-message">Memuat sistem...</p>
+        <p id="offline-status" class="text-sm text-red-400 mt-1 hidden">
+          MODE OFFLINE: Data disimpan lokal.
+        </p>
+        <p id="location-message" class="text-sm text-gray-400 mt-1"></p>
+      </div>
+    </div>
+
+    <!-- Kamera -->
+    <div class="mb-4 aspect-video w-full rounded-md overflow-hidden border border-gray-700 bg-gray-900 flex items-center justify-center">
+      <video id="video" autoplay playsinline class="w-full h-full object-cover"></video>
+      <canvas id="canvas-capture" class="hidden w-full h-full object-cover"></canvas>
+      <canvas id="canvas-hidden" class="hidden"></canvas>
+      <div id="video-placeholder" class="text-gray-500">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"
+             fill="none" stroke="currentColor" stroke-width="1.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="13" r="3"></circle>
+          <path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2.5-3z"></path>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Tombol kontrol -->
+    <div class="flex flex-col gap-3">
+      <button id="start-btn" class="btn-primary w-full" disabled>Mulai Absensi</button>
+      <button id="capture-btn" class="btn-primary w-full hidden">Ambil Foto</button>
+      <button id="submit-btn" class="btn-primary w-full hidden">Kirim Absensi</button>
+      <button id="reset-btn" class="btn-secondary w-full hidden">Absen Lagi</button>
+    </div>
+  </div>
+
+  <!-- Riwayat -->
+  <div class="card w-full max-w-md p-6 shadow-lg">
+    <h2 class="text-lg font-bold mb-4 border-b border-gray-700 pb-2">Riwayat Absensi</h2>
+    <div id="history-container" class="text-sm text-gray-400">
+      <p>Memuat riwayat...</p>
+    </div>
+  </div>
+
+  <!-- Script utama -->
+  <script type="module" src="js/employee-app.js"></script>
+</body>
+</html>
