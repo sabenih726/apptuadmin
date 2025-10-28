@@ -1,0 +1,27 @@
+name: Deploy ke Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Gunakan Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Instal Firebase Tools
+        run: npm install -g firebase-tools
+
+      - name: Deploy ke Firebase Hosting
+        env:
+          FIREBASE_SERVICE_ACCOUNT_APPTUADMIN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_APPTUADMIN }}
+        run: |
+          firebase deploy --only hosting --non-interactive --project apptuadmin
