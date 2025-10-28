@@ -3,20 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AttendEase - Sistem Absensi Digital Modern</title>
-  
-  <!-- Meta Tags -->
-  <meta name="description" content="Sistem absensi digital modern dengan teknologi face recognition, GPS tracking, dan real-time monitoring">
-  <meta name="keywords" content="absensi, digital, karyawan, attendance, system">
-  <meta name="author" content="AttendEase">
-  
-  <!-- Open Graph -->
-  <meta property="og:title" content="AttendEase - Sistem Absensi Digital">
-  <meta property="og:description" content="Modernisasi absensi karyawan dengan teknologi terkini">
-  <meta property="og:image" content="/images/og-image.jpg">
-  
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="/favicon.png">
+  <title>Sistem Absensi - [Nama Perusahaan Anda]</title>
   
   <!-- TailwindCSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -25,966 +12,277 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- AOS Animation -->
-  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-  
-  <!-- Custom CSS -->
   <style>
-    * {
-      font-family: 'Inter', sans-serif;
-    }
-    
     body {
-      background: #0f0f23;
-      overflow-x: hidden;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%);
+      min-height: 100vh;
     }
     
-    /* Gradient Background */
-    .gradient-bg {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      background-size: 400% 400%;
-      animation: gradientShift 15s ease infinite;
-    }
-    
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    
-    /* Glass Effect */
     .glass {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
     
-    /* Glow Effect */
-    .glow {
-      box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+    .btn-3d {
+      box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+      transition: all 0.1s;
     }
     
-    /* Floating Animation */
-    .float {
-      animation: float 6s ease-in-out infinite;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-20px); }
-    }
-    
-    /* Pulse Animation */
-    .pulse {
-      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-    
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: .5; }
-    }
-    
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-      width: 10px;
-    }
-    
-    ::-webkit-scrollbar-track {
-      background: #1a1a2e;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 10px;
-    }
-    
-    /* Particle Background */
-    #particles-js {
-      position: fixed;
-      width: 100%;
-      height: 100%;
-      top: 0;
-      left: 0;
-      z-index: -1;
-    }
-    
-    /* Text Gradient */
-    .text-gradient {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    /* Button Hover Effect */
-    .btn-hover {
-      position: relative;
-      overflow: hidden;
-      transition: all 0.3s;
-    }
-    
-    .btn-hover::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      transition: width 0.6s, height 0.6s;
-    }
-    
-    .btn-hover:hover::before {
-      width: 300px;
-      height: 300px;
-    }
-    
-    /* Card Hover */
-    .card-hover {
-      transition: all 0.3s;
-    }
-    
-    .card-hover:hover {
-      transform: translateY(-10px);
-      box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
-    }
-    
-    /* Typing Animation */
-    .typing {
-      border-right: 2px solid #667eea;
-      animation: blink 1s infinite;
-    }
-    
-    @keyframes blink {
-      0%, 100% { border-color: transparent; }
-      50% { border-color: #667eea; }
+    .btn-3d:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 rgba(0,0,0,0.2);
     }
   </style>
 </head>
 
-<body class="text-white">
+<body class="flex items-center justify-center min-h-screen p-4">
   
-  <!-- Particle Background -->
-  <div id="particles-js"></div>
-  
-  <!-- Navigation -->
-  <nav class="fixed w-full z-50 glass transition-all duration-300" id="navbar">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
+  <!-- Main Container -->
+  <div class="w-full max-w-md">
+    
+    <!-- Company Logo/Header -->
+    <div class="text-center mb-8">
+      <!-- Ganti dengan logo perusahaan Anda -->
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full mb-4">
+        <i class="fas fa-building text-3xl text-blue-600"></i>
+      </div>
+      
+      <h1 class="text-3xl font-bold text-white mb-2">
+        Sistem Absensi Digital
+      </h1>
+      <p class="text-gray-300">
+        <!-- Ganti dengan nama perusahaan Anda -->
+        PT. Nama Perusahaan Anda
+      </p>
+    </div>
+    
+    <!-- Login Card -->
+    <div class="glass rounded-2xl p-8">
+      
+      <!-- Welcome Message -->
+      <div class="text-center mb-6">
+        <h2 class="text-xl font-semibold text-white mb-2">
+          Selamat Datang
+        </h2>
+        <p class="text-gray-300 text-sm">
+          Silakan pilih menu sesuai dengan role Anda
+        </p>
+      </div>
+      
+      <!-- Current Time Display -->
+      <div class="bg-black bg-opacity-30 rounded-lg p-3 mb-6">
+        <div class="text-center">
+          <p class="text-gray-400 text-xs">Waktu Saat Ini</p>
+          <p id="current-time" class="text-2xl font-bold text-white"></p>
+          <p id="current-date" class="text-sm text-gray-300"></p>
+        </div>
+      </div>
+      
+      <!-- Menu Buttons -->
+      <div class="space-y-3">
         
-        <!-- Logo -->
-        <div class="flex items-center">
-          <div class="flex-shrink-0 flex items-center">
-            <i class="fas fa-fingerprint text-3xl text-gradient mr-3"></i>
-            <span class="font-bold text-xl">AttendEase</span>
+        <!-- Employee Login -->
+        <button onclick="goToEmployee()" 
+                class="btn-3d w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-lg transition-all">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <i class="fas fa-user-clock text-xl mr-3"></i>
+              <div class="text-left">
+                <p class="font-semibold">Absensi Karyawan</p>
+                <p class="text-xs opacity-75">Untuk melakukan absensi harian</p>
+              </div>
+            </div>
+            <i class="fas fa-chevron-right"></i>
           </div>
-        </div>
+        </button>
         
-        <!-- Desktop Menu -->
-        <div class="hidden md:block">
-          <div class="ml-10 flex items-baseline space-x-4">
-            <a href="#home" class="hover:text-purple-400 px-3 py-2 rounded-md text-sm font-medium transition">Beranda</a>
-            <a href="#features" class="hover:text-purple-400 px-3 py-2 rounded-md text-sm font-medium transition">Fitur</a>
-            <a href="#how-it-works" class="hover:text-purple-400 px-3 py-2 rounded-md text-sm font-medium transition">Cara Kerja</a>
-            <a href="#pricing" class="hover:text-purple-400 px-3 py-2 rounded-md text-sm font-medium transition">Harga</a>
-            <a href="#contact" class="hover:text-purple-400 px-3 py-2 rounded-md text-sm font-medium transition">Kontak</a>
+        <!-- Admin Login -->
+        <button onclick="goToAdmin()" 
+                class="btn-3d w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-4 px-6 rounded-lg transition-all">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <i class="fas fa-user-shield text-xl mr-3"></i>
+              <div class="text-left">
+                <p class="font-semibold">Admin Dashboard</p>
+                <p class="text-xs opacity-75">Untuk HR/Admin mengelola absensi</p>
+              </div>
+            </div>
+            <i class="fas fa-chevron-right"></i>
           </div>
-        </div>
+        </button>
         
-        <!-- CTA Buttons -->
-        <div class="hidden md:flex items-center space-x-3">
-          <a href="login.html" class="px-4 py-2 rounded-lg text-sm font-medium hover:text-purple-400 transition">
-            Masuk
-          </a>
-          <a href="login.html" class="gradient-bg px-5 py-2 rounded-lg text-sm font-medium btn-hover">
-            Mulai Gratis
-          </a>
-        </div>
-        
-        <!-- Mobile menu button -->
-        <div class="md:hidden">
-          <button onclick="toggleMobileMenu()" class="text-gray-400 hover:text-white">
-            <i class="fas fa-bars text-2xl"></i>
-          </button>
-        </div>
+        <!-- Guest Access (Optional) -->
+        <button onclick="goToGuest()" 
+                class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-all">
+          <i class="fas fa-user mr-2"></i>
+          Masuk sebagai Tamu (Demo)
+        </button>
+      </div>
+      
+      <!-- Divider -->
+      <div class="my-6 border-t border-gray-600"></div>
+      
+      <!-- Quick Links -->
+      <div class="grid grid-cols-2 gap-3 text-center">
+        <a href="#" onclick="showHelp()" class="text-gray-300 hover:text-white text-sm">
+          <i class="fas fa-question-circle mr-1"></i>
+          Bantuan
+        </a>
+        <a href="#" onclick="showInfo()" class="text-gray-300 hover:text-white text-sm">
+          <i class="fas fa-info-circle mr-1"></i>
+          Informasi
+        </a>
       </div>
     </div>
     
-    <!-- Mobile Menu -->
-    <div id="mobile-menu" class="hidden md:hidden glass">
-      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-        <a href="#home" class="block hover:bg-purple-700 px-3 py-2 rounded-md">Beranda</a>
-        <a href="#features" class="block hover:bg-purple-700 px-3 py-2 rounded-md">Fitur</a>
-        <a href="#how-it-works" class="block hover:bg-purple-700 px-3 py-2 rounded-md">Cara Kerja</a>
-        <a href="#pricing" class="block hover:bg-purple-700 px-3 py-2 rounded-md">Harga</a>
-        <a href="login.html" class="block gradient-bg px-3 py-2 rounded-md font-semibold">Masuk</a>
-      </div>
-    </div>
-  </nav>
-  
-  <!-- Hero Section -->
-  <section id="home" class="min-h-screen flex items-center justify-center px-4 pt-16">
-    <div class="max-w-7xl mx-auto text-center">
-      
-      <!-- Badge -->
-      <div class="inline-flex items-center glass px-4 py-2 rounded-full mb-6" data-aos="fade-down">
-        <span class="pulse w-2 h-2 bg-green-400 rounded-full mr-2"></span>
-        <span class="text-sm">🎉 Version 2.0 Telah Dirilis!</span>
-      </div>
-      
-      <!-- Main Heading -->
-      <h1 class="text-5xl md:text-7xl font-bold mb-6" data-aos="fade-up">
-        Sistem Absensi
-        <span class="text-gradient"> Digital Modern</span>
-      </h1>
-      
-      <!-- Typing Effect -->
-      <p class="text-xl md:text-2xl text-gray-300 mb-8 typing" data-aos="fade-up" data-aos-delay="100">
-        Kelola kehadiran karyawan dengan mudah dan efisien
+    <!-- Office Info (Optional) -->
+    <div class="text-center mt-6 text-gray-400 text-sm">
+      <p>
+        <i class="fas fa-map-marker-alt mr-1"></i>
+        Kantor Pusat: Jl. Contoh No. 123, Jakarta
       </p>
-      
-      <!-- Features List -->
-      <div class="flex flex-wrap justify-center gap-4 mb-10" data-aos="fade-up" data-aos-delay="200">
-        <div class="flex items-center text-sm">
-          <i class="fas fa-check-circle text-green-400 mr-2"></i>
-          Face Recognition
-        </div>
-        <div class="flex items-center text-sm">
-          <i class="fas fa-check-circle text-green-400 mr-2"></i>
-          GPS Tracking
-        </div>
-        <div class="flex items-center text-sm">
-          <i class="fas fa-check-circle text-green-400 mr-2"></i>
-          Real-time Report
-        </div>
-        <div class="flex items-center text-sm">
-          <i class="fas fa-check-circle text-green-400 mr-2"></i>
-          Multi Platform
-        </div>
-      </div>
-      
-      <!-- CTA Buttons -->
-      <div class="flex flex-col sm:flex-row gap-4 justify-center" data-aos="fade-up" data-aos-delay="300">
-        <a href="employee.html" class="gradient-bg px-8 py-4 rounded-xl font-semibold text-lg btn-hover flex items-center justify-center">
-          <i class="fas fa-rocket mr-2"></i>
-          Coba Sekarang - Gratis
-        </a>
-        <a href="admin.html" class="glass px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white hover:bg-opacity-10 transition flex items-center justify-center">
-          <i class="fas fa-play-circle mr-2"></i>
-          Lihat Demo Admin
-        </a>
-      </div>
-      
-      <!-- Stats -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-20" data-aos="fade-up" data-aos-delay="400">
-        <div class="glass rounded-xl p-6 card-hover">
-          <h3 class="text-3xl font-bold text-gradient">10K+</h3>
-          <p class="text-gray-400 text-sm mt-1">Pengguna Aktif</p>
-        </div>
-        <div class="glass rounded-xl p-6 card-hover">
-          <h3 class="text-3xl font-bold text-gradient">500+</h3>
-          <p class="text-gray-400 text-sm mt-1">Perusahaan</p>
-        </div>
-        <div class="glass rounded-xl p-6 card-hover">
-          <h3 class="text-3xl font-bold text-gradient">99.9%</h3>
-          <p class="text-gray-400 text-sm mt-1">Uptime</p>
-        </div>
-        <div class="glass rounded-xl p-6 card-hover">
-          <h3 class="text-3xl font-bold text-gradient">24/7</h3>
-          <p class="text-gray-400 text-sm mt-1">Support</p>
-        </div>
-      </div>
-      
-      <!-- Scroll Indicator -->
-      <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
-        <i class="fas fa-chevron-down text-2xl text-gray-400"></i>
-      </div>
+      <p class="mt-1">
+        <i class="fas fa-phone mr-1"></i>
+        IT Support: (021) 1234-5678
+      </p>
     </div>
-  </section>
-  
-  <!-- Features Section -->
-  <section id="features" class="py-20 px-4">
-    <div class="max-w-7xl mx-auto">
-      
-      <!-- Section Header -->
-      <div class="text-center mb-16">
-        <h2 class="text-4xl md:text-5xl font-bold mb-4" data-aos="fade-up">
-          Fitur <span class="text-gradient">Unggulan</span>
-        </h2>
-        <p class="text-gray-400 text-lg max-w-2xl mx-auto" data-aos="fade-up" data-aos-delay="100">
-          Dilengkapi dengan teknologi terkini untuk memudahkan manajemen kehadiran
-        </p>
-      </div>
-      
-      <!-- Features Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        
-        <!-- Feature 1 -->
-        <div class="glass rounded-2xl p-8 card-hover" data-aos="fade-up" data-aos-delay="100">
-          <div class="w-14 h-14 gradient-bg rounded-xl flex items-center justify-center mb-6">
-            <i class="fas fa-camera text-2xl"></i>
-          </div>
-          <h3 class="text-xl font-semibold mb-3">Face Recognition</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">
-            Teknologi pengenalan wajah untuk memastikan keakuratan data absensi dan mencegah kecurangan
-          </p>
-        </div>
-        
-        <!-- Feature 2 -->
-        <div class="glass rounded-2xl p-8 card-hover" data-aos="fade-up" data-aos-delay="200">
-          <div class="w-14 h-14 gradient-bg rounded-xl flex items-center justify-center mb-6">
-            <i class="fas fa-map-marked-alt text-2xl"></i>
-          </div>
-          <h3 class="text-xl font-semibold mb-3">GPS Location</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">
-            Tracking lokasi real-time untuk memastikan karyawan absen dari lokasi yang ditentukan
-          </p>
-        </div>
-        
-        <!-- Feature 3 -->
-        <div class="glass rounded-2xl p-8 card-hover" data-aos="fade-up" data-aos-delay="300">
-          <div class="w-14 h-14 gradient-bg rounded-xl flex items-center justify-center mb-6">
-            <i class="fas fa-chart-line text-2xl"></i>
-          </div>
-          <h3 class="text-xl font-semibold mb-3">Real-time Analytics</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">
-            Dashboard analytics lengkap untuk monitoring kehadiran secara real-time
-          </p>
-        </div>
-        
-        <!-- Feature 4 -->
-        <div class="glass rounded-2xl p-8 card-hover" data-aos="fade-up" data-aos-delay="400">
-          <div class="w-14 h-14 gradient-bg rounded-xl flex items-center justify-center mb-6">
-            <i class="fas fa-mobile-alt text-2xl"></i>
-          </div>
-          <h3 class="text-xl font-semibold mb-3">Multi Platform</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">
-            Akses dari berbagai device - Desktop, Tablet, dan Mobile dengan tampilan responsif
-          </p>
-        </div>
-        
-        <!-- Feature 5 -->
-        <div class="glass rounded-2xl p-8 card-hover" data-aos="fade-up" data-aos-delay="500">
-          <div class="w-14 h-14 gradient-bg rounded-xl flex items-center justify-center mb-6">
-            <i class="fas fa-cloud text-2xl"></i>
-          </div>
-          <h3 class="text-xl font-semibold mb-3">Cloud Storage</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">
-            Data tersimpan aman di cloud dengan enkripsi tingkat tinggi dan backup otomatis
-          </p>
-        </div>
-        
-        <!-- Feature 6 -->
-        <div class="glass rounded-2xl p-8 card-hover" data-aos="fade-up" data-aos-delay="600">
-          <div class="w-14 h-14 gradient-bg rounded-xl flex items-center justify-center mb-6">
-            <i class="fas fa-file-export text-2xl"></i>
-          </div>
-          <h3 class="text-xl font-semibold mb-3">Export Report</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">
-            Export laporan dalam berbagai format (PDF, Excel, CSV) untuk kebutuhan administrasi
-          </p>
-        </div>
-      </div>
+    
+    <!-- Footer -->
+    <div class="text-center mt-8 text-gray-500 text-xs">
+      <p>&copy; 2024 PT. Nama Perusahaan Anda</p>
+      <p class="mt-1">Internal Use Only - Confidential</p>
     </div>
-  </section>
+  </div>
   
-  <!-- How It Works -->
-  <section id="how-it-works" class="py-20 px-4">
-    <div class="max-w-7xl mx-auto">
-      
-      <!-- Section Header -->
-      <div class="text-center mb-16">
-        <h2 class="text-4xl md:text-5xl font-bold mb-4" data-aos="fade-up">
-          Cara <span class="text-gradient">Kerja</span>
-        </h2>
-        <p class="text-gray-400 text-lg max-w-2xl mx-auto" data-aos="fade-up" data-aos-delay="100">
-          Proses absensi yang mudah dan cepat dalam 3 langkah sederhana
-        </p>
-      </div>
-      
-      <!-- Steps -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-        
-        <!-- Connector Line (Desktop) -->
-        <div class="hidden md:block absolute top-20 left-1/4 right-1/4 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500"></div>
-        
-        <!-- Step 1 -->
-        <div class="text-center" data-aos="zoom-in" data-aos-delay="100">
-          <div class="relative inline-block">
-            <div class="w-32 h-32 gradient-bg rounded-full flex items-center justify-center mx-auto mb-6 float">
-              <i class="fas fa-user-plus text-4xl"></i>
-            </div>
-            <div class="absolute -top-2 -right-2 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center font-bold">
-              1
-            </div>
-          </div>
-          <h3 class="text-xl font-semibold mb-3">Daftar Akun</h3>
-          <p class="text-gray-400 text-sm">
-            Buat akun gratis dan setup profil perusahaan Anda dalam hitungan menit
-          </p>
-        </div>
-        
-        <!-- Step 2 -->
-        <div class="text-center" data-aos="zoom-in" data-aos-delay="200">
-          <div class="relative inline-block">
-            <div class="w-32 h-32 gradient-bg rounded-full flex items-center justify-center mx-auto mb-6 float" style="animation-delay: 2s">
-              <i class="fas fa-camera text-4xl"></i>
-            </div>
-            <div class="absolute -top-2 -right-2 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center font-bold">
-              2
-            </div>
-          </div>
-          <h3 class="text-xl font-semibold mb-3">Absen Digital</h3>
-          <p class="text-gray-400 text-sm">
-            Karyawan melakukan absensi dengan foto selfie dan GPS otomatis
-          </p>
-        </div>
-        
-        <!-- Step 3 -->
-        <div class="text-center" data-aos="zoom-in" data-aos-delay="300">
-          <div class="relative inline-block">
-            <div class="w-32 h-32 gradient-bg rounded-full flex items-center justify-center mx-auto mb-6 float" style="animation-delay: 4s">
-              <i class="fas fa-chart-bar text-4xl"></i>
-            </div>
-            <div class="absolute -top-2 -right-2 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center font-bold">
-              3
-            </div>
-          </div>
-          <h3 class="text-xl font-semibold mb-3">Monitor & Laporan</h3>
-          <p class="text-gray-400 text-sm">
-            Pantau kehadiran real-time dan generate laporan dengan mudah
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-  
-  <!-- Pricing Section -->
-  <section id="pricing" class="py-20 px-4">
-    <div class="max-w-7xl mx-auto">
-      
-      <!-- Section Header -->
-      <div class="text-center mb-16">
-        <h2 class="text-4xl md:text-5xl font-bold mb-4" data-aos="fade-up">
-          Pilihan <span class="text-gradient">Paket</span>
-        </h2>
-        <p class="text-gray-400 text-lg max-w-2xl mx-auto" data-aos="fade-up" data-aos-delay="100">
-          Pilih paket yang sesuai dengan kebutuhan perusahaan Anda
-        </p>
-      </div>
-      
-      <!-- Pricing Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        
-        <!-- Free Plan -->
-        <div class="glass rounded-2xl p-8 card-hover" data-aos="fade-up" data-aos-delay="100">
-          <div class="text-center mb-8">
-            <h3 class="text-2xl font-bold mb-2">Starter</h3>
-            <p class="text-gray-400 text-sm mb-4">Untuk tim kecil</p>
-            <div class="text-4xl font-bold">
-              Gratis
-            </div>
-            <p class="text-gray-400 text-sm mt-2">Selamanya</p>
-          </div>
-          
-          <ul class="space-y-3 mb-8">
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              Hingga 10 karyawan
-            </li>
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              Face recognition basic
-            </li>
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              GPS tracking
-            </li>
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              Laporan bulanan
-            </li>
-            <li class="flex items-center text-sm text-gray-500">
-              <i class="fas fa-times text-gray-600 mr-3"></i>
-              API access
-            </li>
-          </ul>
-          
-          <button class="w-full glass py-3 rounded-lg font-semibold hover:bg-white hover:bg-opacity-10 transition">
-            Mulai Gratis
-          </button>
-        </div>
-        
-        <!-- Pro Plan -->
-        <div class="glass rounded-2xl p-8 border-2 border-purple-500 transform scale-105 card-hover" data-aos="fade-up" data-aos-delay="200">
-          <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
-            <span class="gradient-bg px-4 py-1 rounded-full text-xs font-semibold">POPULER</span>
-          </div>
-          
-          <div class="text-center mb-8">
-            <h3 class="text-2xl font-bold mb-2">Professional</h3>
-            <p class="text-gray-400 text-sm mb-4">Untuk perusahaan berkembang</p>
-            <div class="text-4xl font-bold">
-              Rp 299K
-            </div>
-            <p class="text-gray-400 text-sm mt-2">per bulan</p>
-          </div>
-          
-          <ul class="space-y-3 mb-8">
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              Hingga 100 karyawan
-            </li>
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              Face recognition advanced
-            </li>
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              Geofencing
-            </li>
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              Real-time analytics
-            </li>
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              API access
-            </li>
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              Priority support
-            </li>
-          </ul>
-          
-          <button class="w-full gradient-bg py-3 rounded-lg font-semibold btn-hover">
-            Pilih Professional
-          </button>
-        </div>
-        
-        <!-- Enterprise Plan -->
-        <div class="glass rounded-2xl p-8 card-hover" data-aos="fade-up" data-aos-delay="300">
-          <div class="text-center mb-8">
-            <h3 class="text-2xl font-bold mb-2">Enterprise</h3>
-            <p class="text-gray-400 text-sm mb-4">Untuk perusahaan besar</p>
-            <div class="text-4xl font-bold">
-              Custom
-            </div>
-            <p class="text-gray-400 text-sm mt-2">Hubungi kami</p>
-          </div>
-          
-          <ul class="space-y-3 mb-8">
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              Unlimited karyawan
-            </li>
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              Custom features
-            </li>
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              On-premise deployment
-            </li>
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              Advanced security
-            </li>
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              Dedicated support
-            </li>
-            <li class="flex items-center text-sm">
-              <i class="fas fa-check text-green-400 mr-3"></i>
-              SLA guarantee
-            </li>
-          </ul>
-          
-          <button class="w-full glass py-3 rounded-lg font-semibold hover:bg-white hover:bg-opacity-10 transition">
-            Hubungi Sales
-          </button>
-        </div>
-      </div>
-    </div>
-  </section>
-  
-  <!-- Testimonials -->
-  <section class="py-20 px-4">
-    <div class="max-w-7xl mx-auto">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl md:text-5xl font-bold mb-4" data-aos="fade-up">
-          Dipercaya oleh <span class="text-gradient">500+ Perusahaan</span>
-        </h2>
-      </div>
-      
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <!-- Testimonial 1 -->
-        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="100">
-          <div class="flex items-center mb-4">
-            <img src="https://ui-avatars.com/api/?name=Budi+Santoso&background=667eea&color=fff" 
-                 class="w-12 h-12 rounded-full mr-3" alt="Avatar">
-            <div>
-              <h4 class="font-semibold">Budi Santoso</h4>
-              <p class="text-gray-400 text-sm">HR Manager, PT ABC</p>
-            </div>
-          </div>
-          <p class="text-gray-300 text-sm italic">
-            "AttendEase sangat membantu kami dalam mengelola absensi 200+ karyawan. Interface yang user-friendly dan fitur yang lengkap!"
-          </p>
-          <div class="flex mt-3">
-            <i class="fas fa-star text-yellow-400"></i>
-            <i class="fas fa-star text-yellow-400"></i>
-            <i class="fas fa-star text-yellow-400"></i>
-            <i class="fas fa-star text-yellow-400"></i>
-            <i class="fas fa-star text-yellow-400"></i>
-          </div>
-        </div>
-        
-        <!-- Testimonial 2 -->
-        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="200">
-          <div class="flex items-center mb-4">
-            <img src="https://ui-avatars.com/api/?name=Sarah+Lee&background=764ba2&color=fff" 
-                 class="w-12 h-12 rounded-full mr-3" alt="Avatar">
-            <div>
-              <h4 class="font-semibold">Sarah Lee</h4>
-              <p class="text-gray-400 text-sm">CEO, StartupXYZ</p>
-            </div>
-          </div>
-          <p class="text-gray-300 text-sm italic">
-            "Implementasi yang mudah dan cepat. Tim support yang responsif. Highly recommended untuk startup yang ingin efisien!"
-          </p>
-          <div class="flex mt-3">
-            <i class="fas fa-star text-yellow-400"></i>
-            <i class="fas fa-star text-yellow-400"></i>
-            <i class="fas fa-star text-yellow-400"></i>
-            <i class="fas fa-star text-yellow-400"></i>
-            <i class="fas fa-star text-yellow-400"></i>
-          </div>
-        </div>
-        
-        <!-- Testimonial 3 -->
-        <div class="glass rounded-2xl p-6" data-aos="fade-up" data-aos-delay="300">
-          <div class="flex items-center mb-4">
-            <img src="https://ui-avatars.com/api/?name=Ahmad+Fadli&background=667eea&color=fff" 
-                 class="w-12 h-12 rounded-full mr-3" alt="Avatar">
-            <div>
-              <h4 class="font-semibold">Ahmad Fadli</h4>
-              <p class="text-gray-400 text-sm">Operations Director</p>
-            </div>
-          </div>
-          <p class="text-gray-300 text-sm italic">
-            "Face recognition feature sangat akurat. Tidak ada lagi buddy punching. ROI tercapai dalam 3 bulan!"
-          </p>
-          <div class="flex mt-3">
-            <i class="fas fa-star text-yellow-400"></i>
-            <i class="fas fa-star text-yellow-400"></i>
-            <i class="fas fa-star text-yellow-400"></i>
-            <i class="fas fa-star text-yellow-400"></i>
-            <i class="fas fa-star text-yellow-400"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-  
-  <!-- CTA Section -->
-  <section class="py-20 px-4">
-    <div class="max-w-4xl mx-auto text-center">
-      <div class="gradient-bg rounded-3xl p-12" data-aos="zoom-in">
-        <h2 class="text-3xl md:text-4xl font-bold mb-4">
-          Siap Modernisasi Sistem Absensi?
-        </h2>
-        <p class="text-lg mb-8 opacity-90">
-          Mulai gratis sekarang, tidak perlu kartu kredit!
-        </p>
-        
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="employee.html" class="bg-white text-purple-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition">
-            <i class="fas fa-rocket mr-2"></i>
-            Coba Demo Gratis
-          </a>
-          <a href="#contact" class="bg-transparent border-2 border-white px-8 py-4 rounded-xl font-semibold hover:bg-white hover:bg-opacity-10 transition">
-            <i class="fas fa-phone mr-2"></i>
-            Hubungi Sales
-          </a>
-        </div>
-        
-        <div class="flex items-center justify-center gap-6 mt-8 text-sm">
-          <div class="flex items-center">
-            <i class="fas fa-check-circle mr-2"></i>
-            Setup 5 menit
-          </div>
-          <div class="flex items-center">
-            <i class="fas fa-check-circle mr-2"></i>
-            Tanpa kartu kredit
-          </div>
-          <div class="flex items-center">
-            <i class="fas fa-check-circle mr-2"></i>
-            Cancel anytime
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-  
-  <!-- Footer -->
-  <footer id="contact" class="py-12 px-4 border-t border-gray-800">
-    <div class="max-w-7xl mx-auto">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-        
-        <!-- Company Info -->
+  <!-- Help Modal -->
+  <div id="help-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="glass rounded-2xl p-6 max-w-sm m-4">
+      <h3 class="text-xl font-bold text-white mb-4">Panduan Penggunaan</h3>
+      <div class="space-y-3 text-gray-300 text-sm">
         <div>
-          <div class="flex items-center mb-4">
-            <i class="fas fa-fingerprint text-3xl text-gradient mr-3"></i>
-            <span class="font-bold text-xl">AttendEase</span>
-          </div>
-          <p class="text-gray-400 text-sm mb-4">
-            Solusi absensi digital modern untuk perusahaan masa kini.
-          </p>
-          <div class="flex space-x-3">
-            <a href="#" class="text-gray-400 hover:text-white transition">
-              <i class="fab fa-facebook"></i>
-            </a>
-            <a href="#" class="text-gray-400 hover:text-white transition">
-              <i class="fab fa-twitter"></i>
-            </a>
-            <a href="#" class="text-gray-400 hover:text-white transition">
-              <i class="fab fa-linkedin"></i>
-            </a>
-            <a href="#" class="text-gray-400 hover:text-white transition">
-              <i class="fab fa-instagram"></i>
-            </a>
-          </div>
-        </div>
-        
-        <!-- Product -->
-        <div>
-          <h4 class="font-semibold mb-4">Produk</h4>
-          <ul class="space-y-2 text-gray-400 text-sm">
-            <li><a href="#" class="hover:text-white transition">Features</a></li>
-            <li><a href="#" class="hover:text-white transition">Pricing</a></li>
-            <li><a href="#" class="hover:text-white transition">Integration</a></li>
-            <li><a href="#" class="hover:text-white transition">API Docs</a></li>
+          <p class="font-semibold text-white">Untuk Karyawan:</p>
+          <ul class="list-disc list-inside ml-2">
+            <li>Klik "Absensi Karyawan"</li>
+            <li>Izinkan akses kamera & lokasi</li>
+            <li>Ambil foto selfie</li>
+            <li>Submit absensi</li>
           </ul>
         </div>
-        
-        <!-- Company -->
         <div>
-          <h4 class="font-semibold mb-4">Perusahaan</h4>
-          <ul class="space-y-2 text-gray-400 text-sm">
-            <li><a href="#" class="hover:text-white transition">Tentang Kami</a></li>
-            <li><a href="#" class="hover:text-white transition">Karir</a></li>
-            <li><a href="#" class="hover:text-white transition">Blog</a></li>
-            <li><a href="#" class="hover:text-white transition">Press Kit</a></li>
-          </ul>
-        </div>
-        
-        <!-- Contact -->
-        <div>
-          <h4 class="font-semibold mb-4">Kontak</h4>
-          <ul class="space-y-2 text-gray-400 text-sm">
-            <li class="flex items-center">
-              <i class="fas fa-envelope mr-2"></i>
-              info@attendease.com
-            </li>
-            <li class="flex items-center">
-              <i class="fas fa-phone mr-2"></i>
-              +62 812-3456-7890
-            </li>
-            <li class="flex items-center">
-              <i class="fas fa-map-marker-alt mr-2"></i>
-              Jakarta, Indonesia
-            </li>
+          <p class="font-semibold text-white">Untuk Admin/HR:</p>
+          <ul class="list-disc list-inside ml-2">
+            <li>Klik "Admin Dashboard"</li>
+            <li>Login dengan akun admin</li>
+            <li>Monitor absensi real-time</li>
+            <li>Export laporan</li>
           </ul>
         </div>
       </div>
-      
-      <!-- Bottom Footer -->
-      <div class="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center text-gray-400 text-sm">
-        <p>&copy; 2024 AttendEase. All rights reserved.</p>
-        <div class="flex space-x-4 mt-4 md:mt-0">
-          <a href="#" class="hover:text-white transition">Privacy Policy</a>
-          <a href="#" class="hover:text-white transition">Terms of Service</a>
-          <a href="#" class="hover:text-white transition">Cookie Policy</a>
-        </div>
-      </div>
+      <button onclick="closeHelp()" class="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg">
+        Tutup
+      </button>
     </div>
-  </footer>
-  
-  <!-- Back to Top Button -->
-  <button onclick="scrollToTop()" id="back-to-top" 
-          class="fixed bottom-8 right-8 gradient-bg w-12 h-12 rounded-full flex items-center justify-center opacity-0 invisible transition-all duration-300 hover:scale-110">
-    <i class="fas fa-chevron-up"></i>
-  </button>
+  </div>
   
   <!-- JavaScript -->
   <script>
-    // Initialize AOS
-    AOS.init({
-      duration: 1000,
-      once: true,
-      offset: 100
-    });
-    
-    // Navbar scroll effect
-    window.addEventListener('scroll', () => {
-      const navbar = document.getElementById('navbar');
-      const backToTop = document.getElementById('back-to-top');
+    // Update clock
+    function updateClock() {
+      const now = new Date();
       
-      if (window.scrollY > 50) {
-        navbar.classList.add('bg-black', 'bg-opacity-90');
-      } else {
-        navbar.classList.remove('bg-black', 'bg-opacity-90');
-      }
-      
-      if (window.scrollY > 300) {
-        backToTop.classList.remove('opacity-0', 'invisible');
-        backToTop.classList.add('opacity-100', 'visible');
-      } else {
-        backToTop.classList.add('opacity-0', 'invisible');
-        backToTop.classList.remove('opacity-100', 'visible');
-      }
-    });
-    
-    // Mobile menu toggle
-    function toggleMobileMenu() {
-      const menu = document.getElementById('mobile-menu');
-      menu.classList.toggle('hidden');
-    }
-    
-    // Smooth scrolling
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          target.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          });
-        }
+      // Time
+      document.getElementById('current-time').textContent = now.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
       });
-    });
-    
-    // Scroll to top
-    function scrollToTop() {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
+      
+      // Date
+      document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       });
     }
     
-    // Typing effect
-    const typingText = document.querySelector('.typing');
-    const texts = [
-      'Kelola kehadiran karyawan dengan mudah dan efisien',
-      'Pantau produktivitas tim secara real-time',
-      'Tingkatkan efisiensi operasional perusahaan'
-    ];
-    let textIndex = 0;
-    let charIndex = 0;
-    let isDeleting = false;
+    // Update every second
+    updateClock();
+    setInterval(updateClock, 1000);
     
-    function typeWriter() {
-      const currentText = texts[textIndex];
+    // Navigation functions
+    function goToEmployee() {
+      window.location.href = 'employee.html';
+    }
+    
+    function goToAdmin() {
+      // Bisa langsung ke admin atau ke login dulu
+      window.location.href = 'login.html?redirect=admin';
+    }
+    
+    function goToGuest() {
+      // Set guest mode flag
+      sessionStorage.setItem('guestMode', 'true');
+      window.location.href = 'employee.html';
+    }
+    
+    // Modal functions
+    function showHelp() {
+      document.getElementById('help-modal').classList.remove('hidden');
+    }
+    
+    function closeHelp() {
+      document.getElementById('help-modal').classList.add('hidden');
+    }
+    
+    function showInfo() {
+      alert('Sistem Absensi Digital v2.0\n\nDikembangkan oleh: Tim IT\nUntuk pertanyaan hubungi: it@perusahaan.com');
+    }
+    
+    // Check working hours (optional)
+    function checkWorkingHours() {
+      const now = new Date();
+      const hour = now.getHours();
       
-      if (isDeleting) {
-        typingText.textContent = currentText.substring(0, charIndex - 1);
-        charIndex--;
+      // Misalnya jam kerja 7:00 - 18:00
+      if (hour >= 7 && hour <= 18) {
+        // Working hours
+        document.body.classList.add('working-hours');
       } else {
-        typingText.textContent = currentText.substring(0, charIndex + 1);
-        charIndex++;
-      }
-      
-      if (!isDeleting && charIndex === currentText.length) {
-        isDeleting = true;
-        setTimeout(typeWriter, 2000);
-      } else if (isDeleting && charIndex === 0) {
-        isDeleting = false;
-        textIndex = (textIndex + 1) % texts.length;
-        setTimeout(typeWriter, 500);
-      } else {
-        setTimeout(typeWriter, isDeleting ? 50 : 100);
+        // Outside working hours
+        console.log('Di luar jam kerja');
       }
     }
     
-    // Start typing effect
-    setTimeout(typeWriter, 1000);
+    checkWorkingHours();
     
-    // Particle.js configuration
-    if (typeof particlesJS !== 'undefined') {
-      particlesJS('particles-js', {
-        particles: {
-          number: { value: 50, density: { enable: true, value_area: 800 } },
-          color: { value: '#667eea' },
-          shape: { type: 'circle' },
-          opacity: { value: 0.5, random: true },
-          size: { value: 3, random: true },
-          line_linked: {
-            enable: true,
-            distance: 150,
-            color: '#667eea',
-            opacity: 0.2,
-            width: 1
-          },
-          move: {
-            enable: true,
-            speed: 2,
-            direction: 'none',
-            random: false,
-            straight: false,
-            out_mode: 'out',
-            bounce: false
-          }
-        },
-        interactivity: {
-          detect_on: 'canvas',
-          events: {
-            onhover: { enable: true, mode: 'grab' },
-            onclick: { enable: true, mode: 'push' },
-            resize: true
-          }
-        },
-        retina_detect: true
-      });
-    }
-    
-    // Add loading animation
-    window.addEventListener('load', () => {
-      document.body.classList.add('loaded');
+    // Keyboard shortcuts (optional)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '1') goToEmployee();
+      if (e.key === '2') goToAdmin();
+      if (e.key === '?') showHelp();
     });
     
-    // Check for saved theme preference
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      document.body.classList.add(savedTheme);
-    }
-    
-    // Analytics tracking (if needed)
-    function trackEvent(category, action, label) {
-      if (typeof gtag !== 'undefined') {
-        gtag('event', action, {
-          event_category: category,
-          event_label: label
-        });
-      }
-    }
-    
-    // Track CTA clicks
-    document.querySelectorAll('[data-track]').forEach(element => {
-      element.addEventListener('click', () => {
-        const trackData = element.dataset.track.split(',');
-        trackEvent(trackData[0], trackData[1], trackData[2]);
+    // Add subtle animation on load
+    document.addEventListener('DOMContentLoaded', () => {
+      const buttons = document.querySelectorAll('button');
+      buttons.forEach((btn, index) => {
+        setTimeout(() => {
+          btn.style.opacity = '0';
+          btn.style.transform = 'translateY(20px)';
+          btn.style.transition = 'all 0.5s ease';
+          
+          setTimeout(() => {
+            btn.style.opacity = '1';
+            btn.style.transform = 'translateY(0)';
+          }, 100);
+        }, index * 100);
       });
     });
   </script>
-  
-  <!-- Particles.js -->
-  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
 </body>
 </html>
