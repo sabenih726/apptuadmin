@@ -5,9 +5,7 @@ import {
     getAuth, 
     signInAnonymously, 
     signInWithEmailAndPassword,
-    onAuthStateChanged, 
-    setPersistence,
-    browserLocalPersistence 
+    onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { 
     getFirestore, 
@@ -55,10 +53,9 @@ let attendanceData = {
 // --- Service Worker Registration ---
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js').then(
-            registration => console.log('SW registered: ', registration),
-            err => console.log('SW registration failed: ', err)
-        );
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => console.log('SW registered: ', registration))
+            .catch(err => console.log('SW registration failed: ', err));
     });
 }
 
@@ -68,12 +65,10 @@ function speak(text) {
         if ('speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'id-ID';
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
             window.speechSynthesis.speak(utterance);
         }
     } catch (error) { 
-        console.log('Speech synthesis not available');
+        console.error('Speech synthesis error:', error);
     }
 }
 
@@ -93,9 +88,7 @@ async function initApp() {
         auth = getAuth(app);
         db = getFirestore(app);
         
-        // Set persistence to local
-        await setPersistence(auth, browserLocalPersistence);
-        
+        console.log('Firebase initialized successfully');
         await handleAuthentication();
     } catch (error) {
         console.error("Firebase Init Error:", error);
@@ -114,17 +107,21 @@ async function handleAuthentication() {
             
             await checkClockStatus(currentUserId);
             loadUserHistory(currentUserId);
-            syncData();
+            
+            // Check for pending offline data
+            if (navigator.onLine) {
+                await syncData();
+            }
 
-            updateStatus(`Selamat datang ${currentUserEmail}. Siap untuk ${isClockedIn ? 'Absen Pulang' : 'Absen Masuk'}`, true);
+            updateStatus(`Terhubung sebagai ${currentUserEmail}. Siap untuk ${isClockedIn ? 'Absen Pulang' : 'Absen Masuk'}`, true);
             
         } else {
-            // If not authenticated, try anonymous sign in
+            // Try anonymous sign in
             try {
                 await signInAnonymously(auth);
+                console.log('Signed in anonymously');
             } catch (error) {
-                console.error("Anonymous Auth Error:", error);
-                currentUserId = null;
+                console.error("Anonymous auth failed:", error);
                 userStatus.textContent = "Not Authenticated";
                 startBtn.disabled = true;
                 updateStatus("Autentikasi gagal. Mohon refresh.", true);
@@ -135,10 +132,8 @@ async function handleAuthentication() {
 
 // --- Clock Status Check ---
 async function checkClockStatus(userId) {
-    const absensiRef = collection(db, getCollectionPath());
-    
     try {
-        // Get today's start time
+        const absensiRef = collection(db, getCollectionPath());
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
@@ -150,14 +145,14 @@ async function checkClockStatus(userId) {
         );
 
         const snapshot = await getDocs(q);
-
+        
         if (!snapshot.empty) {
             const latestDoc = snapshot.docs[0];
             const latestData = latestDoc.data();
-            const latestTimestamp = latestData.timestamp ? latestData.timestamp.toDate() : new Date(0);
+            const latestTimestamp = latestData.timestamp?.toDate() || new Date(0);
             
-            // Check if the latest record is from today
-            if (latestTimestamp >= today) {
+            // Check if it's from today
+            if (latestTimestamp.toDateString() === new Date().toDateString()) {
                 isClockedIn = latestData.type === 'IN';
             } else {
                 isClockedIn = false;
@@ -165,31 +160,34 @@ async function checkClockStatus(userId) {
         } else {
             isClockedIn = false;
         }
-    } catch(e) {
-        console.error("Error checking clock status:", e);
+    } catch(error) {
+        console.error("Error checking clock status:", error);
         // If there's an index error, fallback to simpler query
         try {
-            const q = query(
-                absensiRef, 
-                where("userId", "==", userId)
-            );
-            
+            const absensiRef = collection(db, getCollectionPath());
+            const q = query(absensiRef, where("userId", "==", userId));
             const snapshot = await getDocs(q);
             
             if (!snapshot.empty) {
+                const records = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    records.push({
+                        ...data,
+                        timestamp: data.timestamp?.toDate() || new Date(0)
+                    });
+                });
+                
                 // Sort locally
-                const records = snapshot.docs.map(doc => ({
-                    ...doc.data(),
-                    timestamp: doc.data().timestamp ? doc.data().timestamp.toDate() : new Date(0)
-                })).sort((a, b) => b.timestamp - a.timestamp);
+                records.sort((a, b) => b.timestamp - a.timestamp);
                 
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-                if (records[0] && records[0].timestamp >= today) {
-                    isClockedIn = records[0].type === 'IN';
-                } else {
-                    isClockedIn = false;
+                if (records.length > 0) {
+                    const latest = records[0];
+                    if (latest.timestamp.toDateString() === new Date().toDateString()) {
+                        isClockedIn = latest.type === 'IN';
+                    } else {
+                        isClockedIn = false;
+                    }
                 }
             } else {
                 isClockedIn = false;
@@ -200,13 +198,14 @@ async function checkClockStatus(userId) {
         }
     }
 
+    // Update button text
     startBtn.textContent = isClockedIn ? 'Mulai Absen Pulang' : 'Mulai Absen Masuk';
 }
 
 // --- Location Services ---
 async function getLocation() {
     updateStatus("Mendapatkan lokasi Anda...");
-    locationMessage.textContent = "Memproses GPS...";
+    locationMessage.textContent = "Memproses...";
 
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
@@ -219,14 +218,9 @@ async function getLocation() {
                 const { latitude, longitude } = position.coords;
                 
                 try {
-                    // Try to get location name from reverse geocoding
+                    // Try to get location name from coordinates
                     const response = await fetch(
-                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
-                        {
-                            headers: {
-                                'User-Agent': 'AttendanceApp/1.0'
-                            }
-                        }
+                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
                     );
                     
                     if (response.ok) {
@@ -238,32 +232,21 @@ async function getLocation() {
                             latitude, 
                             longitude 
                         };
-                        
-                        updateStatus(`Lokasi berhasil didapat`);
-                        locationMessage.textContent = `📍 ${locationName.split(',')[0]}`;
+
+                        updateStatus(`Lokasi didapat: ${locationName.split(',')[0]}`);
+                        locationMessage.textContent = `Lokasi: ${locationName.split(',')[0]}`;
+                        resolve(locationName);
                     } else {
-                        // Fallback if geocoding fails
-                        attendanceData = { 
-                            locationName: `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`,
-                            latitude, 
-                            longitude 
-                        };
-                        updateStatus(`Lokasi GPS didapat`);
-                        locationMessage.textContent = `📍 GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+                        throw new Error('Geocoding failed');
                     }
-                    
-                    resolve(attendanceData.locationName);
-                    
                 } catch (apiError) {
-                    // Use coordinates as location name if API fails
-                    attendanceData = { 
-                        locationName: `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`,
-                        latitude, 
-                        longitude 
-                    };
-                    updateStatus(`Lokasi GPS didapat`);
-                    locationMessage.textContent = `📍 GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-                    resolve(attendanceData.locationName);
+                    // Fallback if geocoding fails
+                    const locationName = `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
+                    attendanceData = { locationName, latitude, longitude };
+                    
+                    updateStatus(`Lokasi didapat (koordinat)`);
+                    locationMessage.textContent = locationName;
+                    resolve(locationName);
                 }
             },
             (error) => {
@@ -298,7 +281,6 @@ async function startCamera() {
             streamInstance.getTracks().forEach(track => track.stop());
         }
         
-        // Try to get user-facing camera first, fallback to any camera
         const constraints = {
             video: {
                 facingMode: 'user',
@@ -307,19 +289,14 @@ async function startCamera() {
             }
         };
         
-        try {
-            streamInstance = await navigator.mediaDevices.getUserMedia(constraints);
-        } catch (e) {
-            // Fallback to any available camera
-            streamInstance = await navigator.mediaDevices.getUserMedia({ video: true });
-        }
+        streamInstance = await navigator.mediaDevices.getUserMedia(constraints);
         
         video.srcObject = streamInstance;
         video.classList.remove('hidden');
         videoPlaceholder.classList.add('hidden');
         canvasCapture.classList.add('hidden');
         
-        updateStatus("Posisikan wajah Anda di tengah dan ambil foto.");
+        updateStatus("Posisikan wajah Anda dan ambil foto.");
 
     } catch (error) {
         console.error("Kamera Error:", error);
@@ -328,32 +305,27 @@ async function startCamera() {
 }
 
 function capturePhoto() {
-    updateStatus("Foto berhasil diambil!", true);
+    updateStatus("Foto diambil!", true);
 
     const context = canvasHidden.getContext('2d');
     const captureContext = canvasCapture.getContext('2d');
 
-    // Set canvas sizes
     canvasHidden.width = video.videoWidth;
     canvasHidden.height = video.videoHeight;
     canvasCapture.width = video.clientWidth;
     canvasCapture.height = video.clientHeight;
 
-    // Draw video frame to canvases
     context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
     captureContext.drawImage(video, 0, 0, canvasCapture.width, canvasCapture.height);
 
-    // Show captured image, hide video
     video.classList.add('hidden');
     canvasCapture.classList.remove('hidden');
 
-    // Stop camera stream
     if (streamInstance) {
         streamInstance.getTracks().forEach(track => track.stop());
         streamInstance = null;
     }
 
-    // Update buttons
     captureBtn.classList.add('hidden');
     submitBtn.classList.remove('hidden');
 }
@@ -361,7 +333,7 @@ function capturePhoto() {
 // --- Submit Functions ---
 async function submitDataToFirestore(dataToSend) {
     if (!navigator.onLine) {
-         throw new Error("Tidak ada koneksi internet.");
+        throw new Error("Tidak ada koneksi internet.");
     }
     if (!db) {
         throw new Error("Firebase DB belum terinisialisasi.");
@@ -387,7 +359,7 @@ async function submitAttendance() {
     submitBtn.textContent = "Memproses...";
 
     try {
-        // Convert photo to base64 with compression
+        // Compress photo to reduce size
         const photoBase64 = canvasHidden.toDataURL('image/jpeg', 0.3); 
         const type = isClockedIn ? 'OUT' : 'IN';
 
@@ -403,15 +375,13 @@ async function submitAttendance() {
             photoBase64: photoBase64,
             deviceInfo: {
                 userAgent: navigator.userAgent,
-                platform: navigator.platform,
-                language: navigator.language
+                platform: navigator.platform
             }
         };
         
-        // Try to submit online
         await submitDataToFirestore(docData);
 
-        updateStatus(`Absensi ${type} berhasil terkirim. Terima kasih!`, true);
+        updateStatus(`Absensi ${type} berhasil terkirim!`, true);
         isClockedIn = !isClockedIn;
         startBtn.textContent = isClockedIn ? 'Mulai Absen Pulang' : 'Mulai Absen Masuk';
         
@@ -423,13 +393,26 @@ async function submitAttendance() {
         
         // Save to IndexedDB for offline sync
         try {
-            const offlineData = {
-                ...docData,
-                timestamp: new Date().toISOString()
+            const docData = {
+                userId: currentUserId,
+                userEmail: currentUserEmail,
+                type: isClockedIn ? 'OUT' : 'IN',
+                locationName: attendanceData.locationName,
+                coordinates: {
+                    latitude: attendanceData.latitude,
+                    longitude: attendanceData.longitude
+                },
+                photoBase64: canvasHidden.toDataURL('image/jpeg', 0.3),
+                deviceInfo: {
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform
+                },
+                offlineTimestamp: new Date().toISOString()
             };
-            await saveToIndexedDB(offlineData);
-            updateStatus(`Data disimpan offline. Akan dikirim saat online kembali.`, true);
-            document.getElementById('offline-status').classList.remove('hidden');
+            
+            await saveToIndexedDB(docData);
+            updateStatus(`Mode Offline: Data disimpan lokal.`, true);
+            offlineStatus.classList.remove('hidden');
         } catch (dbError) {
             updateStatus(`Gagal menyimpan data: ${dbError.message}`, true);
         }
@@ -443,28 +426,27 @@ async function submitAttendance() {
 
 // --- Sync Data ---
 async function syncData() {
-    if (!navigator.onLine) return;
-    
     try {
         const pending = await getPendingSubmissions();
         if (pending.length === 0) return;
 
+        console.log(`Found ${pending.length} pending submissions`);
         updateStatus(`Sinkronisasi ${pending.length} data offline...`, false);
 
         for (const item of pending) {
             try {
                 await submitDataToFirestore(item);
                 await deleteSubmission(item.id);
-                console.log(`Data ${item.id} berhasil disinkronkan.`);
+                console.log(`Synced: ${item.id}`);
             } catch (error) {
-                console.error(`Gagal sinkronisasi ${item.id}:`, error);
-                return; 
+                console.error(`Failed to sync ${item.id}:`, error);
+                break; // Stop syncing on first failure
             }
         }
         
-        updateStatus("Semua data offline berhasil disinkronkan!", true);
-        document.getElementById('offline-status').classList.add('hidden');
-        if (currentUserId) loadUserHistory(currentUserId);
+        updateStatus("Data offline berhasil disinkronkan!", true);
+        loadUserHistory(currentUserId);
+        
     } catch (error) {
         console.error("Sync error:", error);
     }
@@ -472,6 +454,8 @@ async function syncData() {
 
 // --- User History ---
 function loadUserHistory(userId) {
+    if (!db) return;
+    
     const absensiRef = collection(db, getCollectionPath());
     
     const q = query(
@@ -481,39 +465,48 @@ function loadUserHistory(userId) {
 
     onSnapshot(q, (snapshot) => {
         if (snapshot.empty) {
-            historyContainer.innerHTML = '<p class="text-gray-500">Belum ada riwayat absensi.</p>';
+            historyContainer.innerHTML = '<p class="text-gray-400">Belum ada riwayat absensi.</p>';
             return;
         }
 
+        const records = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            records.push({
+                ...data,
+                id: doc.id,
+                timestamp: data.timestamp?.toDate() || new Date(data.createdAt || 0)
+            });
+        });
+        
         // Sort locally by timestamp
-        const records = snapshot.docs.map(doc => ({
-            ...doc.data(),
-            id: doc.id,
-            timestamp: doc.data().timestamp ? doc.data().timestamp.toDate() : new Date(doc.data().createdAt || 0)
-        })).sort((a, b) => b.timestamp - a.timestamp);
+        records.sort((a, b) => b.timestamp - a.timestamp);
 
-        // Display last 5 records
         historyContainer.innerHTML = records.slice(0, 5).map(record => {
-            const time = record.timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            const date = record.timestamp.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+            const time = record.timestamp.toLocaleTimeString('id-ID', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            const date = record.timestamp.toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
             const statusClass = record.type === 'IN' ? 'text-green-400' : 'text-yellow-400';
-            const statusIcon = record.type === 'IN' ? '🟢' : '🟡';
+            const locationShort = record.locationName?.split(',')[0] || 'Unknown';
 
             return `
                 <div class="flex justify-between items-center border-b border-gray-800 py-2">
-                    <div class="flex items-center gap-2">
-                        <span>${statusIcon}</span>
-                        <span class="${statusClass} font-bold">${record.type}</span>
-                    </div>
-                    <span class="text-gray-400">${date} ${time}</span>
-                    <span class="text-gray-500 text-xs truncate max-w-[100px]" title="${record.locationName}">
-                        📍 ${record.locationName.split(',')[0]}
+                    <span class="${statusClass} font-bold text-lg">${record.type}</span>
+                    <span class="text-xs">${date} ${time}</span>
+                    <span class="text-gray-500 text-xs truncate max-w-[150px]" title="${record.locationName}">
+                        ${locationShort}
                     </span>
                 </div>
             `;
         }).join('');
     }, (error) => {
-        console.error("Error memuat riwayat:", error);
+        console.error("Error loading history:", error);
         historyContainer.innerHTML = '<p class="text-red-400">Gagal memuat riwayat.</p>';
     });
 }
@@ -540,7 +533,7 @@ function resetUI() {
 // --- Event Listeners ---
 startBtn.addEventListener('click', async () => {
     if (!currentUserId) {
-        updateStatus("Harap tunggu, sedang melakukan autentikasi.", true);
+        updateStatus("Harap tunggu, sedang autentikasi...", true);
         return;
     }
 
@@ -548,7 +541,7 @@ startBtn.addEventListener('click', async () => {
     startBtn.textContent = "Memproses...";
 
     const type = isClockedIn ? 'Absen Pulang' : 'Absen Masuk';
-    updateStatus(`Memulai proses ${type}...`, true);
+    updateStatus(`Memulai ${type}...`, true);
 
     try {
         await getLocation();
@@ -557,9 +550,9 @@ startBtn.addEventListener('click', async () => {
         startBtn.classList.add('hidden');
         captureBtn.classList.remove('hidden');
         captureBtn.textContent = `Ambil Foto ${type}`;
-        
+
     } catch (error) {
-        console.error("Proses absensi gagal:", error);
+        console.error("Process failed:", error);
         updateStatus(`Error: ${error.message}`, true);
         startBtn.disabled = false;
         startBtn.textContent = isClockedIn ? 'Mulai Absen Pulang' : 'Mulai Absen Masuk';
@@ -572,16 +565,17 @@ resetBtn.addEventListener('click', resetUI);
 
 // --- Network Events ---
 window.addEventListener('online', () => {
-    console.log("Back online");
     offlineStatus.classList.add('hidden');
+    updateStatus("Kembali online.", false);
     syncData();
 });
 
 window.addEventListener('offline', () => {
-    console.log("Gone offline");
     offlineStatus.classList.remove('hidden');
-    updateStatus("Koneksi terputus. Mode offline aktif.", true);
+    updateStatus("Mode offline aktif.", true);
 });
 
-// --- Initialize ---
-initApp();
+// --- Initialize on Load ---
+document.addEventListener('DOMContentLoaded', () => {
+    initApp();
+});
