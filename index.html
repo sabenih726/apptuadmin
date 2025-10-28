@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistem Absensi Karyawan</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-white font-mono flex flex-col items-center justify-center min-h-screen p-6">
+  <h1 class="text-2xl font-bold mb-8">Selamat Datang di Sistem Absensi</h1>
+
+  <div class="flex flex-col gap-4 w-full max-w-xs">
+    <a href="login.html" class="bg-blue-500 hover:bg-blue-600 text-center py-3 rounded font-semibold">
+      Login
+    </a>
+    <a href="employee.html" class="bg-gray-200 hover:bg-gray-300 text-black text-center py-3 rounded font-semibold">
+      Masuk sebagai Karyawan Guest
+    </a>
+    <a href="admin.html" class="bg-purple-700 hover:bg-purple-800 text-center py-3 rounded font-semibold">
+      Dashboard Admin
+    </a>
+  </div>
+
+  <footer class="mt-10 text-xs text-gray-400">
+    &copy; <span id="year"></span> Sistem Absensi — Dibangun dengan Firebase
+  </footer>
+
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
