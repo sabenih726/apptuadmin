@@ -372,5 +372,24 @@ window.addEventListener('beforeunload', () => {
   }
 });
 
+// ========================================
+// EVENT LISTENERS
+// ========================================
+DOM.logoutBtn?.addEventListener('click', logout);
+DOM.refreshBtn?.addEventListener('click', refreshData);
+
+// ✅ TAMBAHAN: Expose showDetail dan deleteRecord ke global scope
+window.showDetail = showDetail;
+window.deleteRecord = deleteRecord;
+
+window.addEventListener('beforeunload', () => {
+  if (unsubscribeSnapshot) {
+    unsubscribeSnapshot();
+  }
+});
+
+// ========================================
+// INITIALIZE
+// ========================================
 console.log('🚀 Starting Admin App...');
 initAuth();
