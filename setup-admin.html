@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup Admin - First Time Setup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    body {
+      font-family: 'IBM Plex Mono', monospace;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-4">
+  
+  <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+    
+    <div class="text-center mb-6">
+      <div class="w-20 h-20 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-user-shield text-3xl text-white"></i>
+      </div>
+      <h1 class="text-3xl font-bold text-gray-800 mb-2">
+        Setup Admin
+      </h1>
+      <p class="text-gray-600 text-sm">
+        Buat akun admin pertama untuk mengakses dashboard
+      </p>
+    </div>
+
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
+      <p class="text-yellow-800 text-xs">
+        <i class="fas fa-exclamation-triangle mr-1"></i>
+        <strong>Penting:</strong> Hapus file ini setelah admin berhasil dibuat untuk keamanan!
+      </p>
+    </div>
+
+    <form id="setup-form" class="space-y-4">
+      
+      <div>
+        <label class="block text-gray-700 text-sm font-semibold mb-2">
+          <i class="fas fa-user mr-1"></i>
+          Nama Lengkap
+        </label>
+        <input 
+          type="text" 
+          id="admin-name" 
+          required
+          placeholder="Admin ApptU"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition"
+        >
+      </div>
+      
+      <div>
+        <label class="block text-gray-700 text-sm font-semibold mb-2">
+          <i class="fas fa-envelope mr-1"></i>
+          Email Admin
+        </label>
+        <input 
+          type="email" 
+          id="admin-email" 
+          required
+          placeholder="admin@apptu.com"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition"
+        >
+        <p class="text-xs text-gray-500 mt-1">
+          Email ini akan digunakan untuk login ke dashboard admin
+        </p>
+      </div>
+      
+      <div>
+        <label class="block text-gray-700 text-sm font-semibold mb-2">
+          <i class="fas fa-lock mr-1"></i>
+          Password
+        </label>
+        <div class="relative">
+          <input 
+            type="password" 
+            id="admin-password" 
+            required
+            minlength="6"
+            placeholder="Minimal 6 karakter"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition pr-12"
+          >
+          <button 
+            type="button" 
+            id="toggle-password"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+          >
+            <i class="fas fa-eye" id="password-icon"></i>
+          </button>
+        </div>
+        <div class="mt-2">
+          <div class="flex items-center text-xs text-gray-600">
+            <i class="fas fa-info-circle mr-1"></i>
+            Password akan otomatis di-generate jika dikosongkan
+          </div>
+        </div>
+      </div>
+      
+      <button 
+        type="submit"
+        id="submit-btn"
+        class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-105 shadow-lg"
+      >
+        <i class="fas fa-rocket mr-2"></i>
+        Buat Akun Admin
+      </button>
+      
+      <div id="status" class="text-sm text-center p-3 rounded hidden"></div>
+      
+    </form>
+
+    <div class="mt-6 text-center">
+      <a href="login.html" class="text-sm text-purple-600 hover:text-purple-700 hover:underline">
+        <i class="fas fa-arrow-left mr-1"></i>
+        Kembali ke Login
+      </a>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { auth, db, COLLECTIONS } from '/firebase-config.js';
+    import { createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+    import { doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+    console.log('🔧 Admin Setup Page Loaded');
+
+    // Toggle password visibility
+    document.getElementById('toggle-password').addEventListener('click', () => {
+      const input = document.getElementById('admin-password');
+      const icon = document.getElementById('password-icon');
+      
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    });
+
+    // Form submission
+    document.getElementById('setup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('admin-email').value.trim();
+      let password = document.getElementById('admin-password').value;
+      const name = document.getElementById('admin-name').value.trim();
+      const statusEl = document.getElementById('status');
+      const submitBtn = document.getElementById('submit-btn');
+      
+      // Auto-generate password if empty
+      if (!password || password.length < 6) {
+        password = 'Admin' + Math.random().toString(36).slice(-8);
+        console.log('Generated password:', password);
+      }
+      
+      try {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating admin account...';
+        
+        statusEl.textContent = '🔐 Creating authentication account...';
+        statusEl.className = 'text-sm text-center p-3 rounded bg-blue-100 text-blue-700 border border-blue-200';
+        statusEl.classList.remove('hidden');
+        
+        // Create Firebase Auth account
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = userCredential.user.uid;
+        
+        console.log('✅ Auth account created:', uid);
+        
+        statusEl.textContent = '📝 Creating admin profile in database...';
+        
+        // Create admin user document in Firestore
+        await setDoc(doc(db, COLLECTIONS.USERS, uid), {
+          uid: uid,
+          email: email,
+          name: name,
+          role: 'admin',
+          active: true,
+          createdAt: serverTimestamp(),
+          isFirstAdmin: true,
+          setupMethod: 'setup-admin-page'
+        });
+        
+        console.log('✅ Admin user document created');
+        
+        // Success!
+        statusEl.innerHTML = `
+          <div class="space-y-2">
+            <p class="font-bold text-green-700">✅ Admin berhasil dibuat!</p>
+            <div class="bg-white p-3 rounded border border-green-300 text-left">
+              <p class="text-xs font-semibold text-gray-700 mb-2">Simpan informasi ini:</p>
+              <p class="text-xs text-gray-600"><strong>Email:</strong> ${email}</p>
+              <p class="text-xs text-gray-600"><strong>Password:</strong> ${password}</p>
+              <p class="text-xs text-gray-600"><strong>Role:</strong> Admin</p>
+            </div>
+            <p class="text-xs text-gray-600">Redirecting to login...</p>
+          </div>
+        `;
+        statusEl.className = 'text-sm text-center p-3 rounded bg-green-100 text-green-700 border border-green-300';
+        
+        // Copy credentials to clipboard
+        const credentials = `ApptU Admin Account\nEmail: ${email}\nPassword: ${password}`;
+        navigator.clipboard.writeText(credentials).then(() => {
+          console.log('✅ Credentials copied to clipboard');
+        }).catch(err => {
+          console.warn('Failed to copy to clipboard:', err);
+        });
+        
+        // Redirect to login after 5 seconds
+        setTimeout(() => {
+          window.location.href = '/login.html?redirect=admin';
+        }, 5000);
+        
+      } catch (error) {
+        console.error('❌ Setup error:', error);
+        
+        let errorMsg = 'Gagal membuat admin';
+        let errorDetail = '';
+        
+        switch(error.code) {
+          case 'auth/email-already-in-use':
+            errorMsg = 'Email sudah terdaftar';
+            errorDetail = 'Email ini sudah digunakan. Gunakan email lain atau login dengan email tersebut.';
+            break;
+            
+          case 'auth/invalid-email':
+            errorMsg = 'Format email tidak valid';
+            errorDetail = 'Pastikan format email benar (contoh: admin@company.com)';
+            break;
+            
+          case 'auth/weak-password':
+            errorMsg = 'Password terlalu lemah';
+            errorDetail = 'Password minimal 6 karakter. Gunakan kombinasi huruf dan angka.';
+            break;
+            
+          case 'permission-denied':
+            errorMsg = 'Permission denied';
+            errorDetail = 'Firestore rules belum di-deploy. Jalankan: firebase deploy --only firestore:rules';
+            break;
+            
+          default:
+            errorMsg = 'Error: ' + error.code;
+            errorDetail = error.message;
+        }
+        
+        statusEl.innerHTML = `
+          <div class="space-y-2">
+            <p class="font-bold">❌ ${errorMsg}</p>
+            <p class="text-xs">${errorDetail}</p>
+          </div>
+        `;
+        statusEl.className = 'text-sm text-center p-3 rounded bg-red-100 text-red-700 border border-red-300';
+        
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-rocket mr-2"></i>Buat Akun Admin';
+      }
+    });
+  </script>
+</body>
+</html>
