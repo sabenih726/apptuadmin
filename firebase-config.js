@@ -32,6 +32,7 @@ const isDevelopment = window.location.hostname === 'localhost' ||
 
 console.log('Environment:', isDevelopment ? 'Development' : 'Production');
 console.log('Project ID:', firebaseConfig.projectId);
+console.log('Auth Domain:', firebaseConfig.authDomain);
 
 // ========================================
 // VALIDATE CONFIGURATION
@@ -98,14 +99,14 @@ console.log('📋 Collections:', COLLECTIONS);
 console.log('👥 Roles:', ROLES);
 
 // ========================================
-// ✅ AUTO-CREATE USER DOCUMENT
+// ✅ AUTO-CREATE USER DOCUMENT (FIXED)
 // ========================================
 
 /**
  * Auto-create user document if missing
  * @param {string} userId - User ID
  * @param {object} userData - Optional user data
- * @returns {Promise<boolean>} Success status
+ * @returns {Promise<string|null>} Created role or null
  */
 async function autoCreateUserDocument(userId, userData = {}) {
   try {
@@ -113,24 +114,25 @@ async function autoCreateUserDocument(userId, userData = {}) {
     
     if (!currentUser || currentUser.uid !== userId) {
       console.warn('⚠️ Cannot auto-create: user not authenticated or UID mismatch');
-      return false;
+      return null;
     }
-    
-    const userDocRef = doc(db, COLLECTIONS.USERS, userId);
     
     console.log('📝 Auto-creating user document for:', userId);
     
-    // Determine role based on email or default to employee
-    let role = ROLES.EMPLOYEE;
+    // Determine role based on email
+    let role = ROLES.EMPLOYEE; // Default
     const email = currentUser.email || userData.email || '';
     
-    // Check if email contains admin keywords
-    if (email.includes('admin') || email.includes('superadmin')) {
+    // Auto-detect admin from email
+    if (email.toLowerCase().includes('admin') || 
+        email.toLowerCase().includes('superadmin')) {
       role = ROLES.ADMIN;
       console.log('🔑 Detected admin email, setting role to admin');
     }
     
-    // Create user document
+    const userDocRef = doc(db, COLLECTIONS.USERS, userId);
+    
+    // Create document
     await setDoc(userDocRef, {
       uid: userId,
       email: currentUser.email || userData.email || 'unknown',
@@ -138,26 +140,26 @@ async function autoCreateUserDocument(userId, userData = {}) {
             currentUser.displayName || 
             currentUser.email?.split('@')[0] || 
             'User',
-      role: userData.role || role, // Use provided role or detected role
+      role: userData.role || role,
       active: true,
       createdAt: serverTimestamp(),
       createdBy: 'auto-created',
       autoCreated: true,
-      ...userData // Merge any additional data
+      ...userData
     });
     
-    console.log('✅ User document auto-created successfully with role:', role);
+    console.log('✅ User document auto-created with role:', role);
     
-    return true;
+    return role;
     
   } catch (error) {
     console.error('❌ Failed to auto-create user document:', error);
-    return false;
+    return null;
   }
 }
 
 // ========================================
-// ROLE MANAGEMENT FUNCTIONS (UPDATED)
+// ROLE MANAGEMENT FUNCTIONS
 // ========================================
 
 /**
@@ -174,23 +176,28 @@ export async function getUserRole(userId, autoCreate = true) {
     }
     
     const userDocRef = doc(db, COLLECTIONS.USERS, userId);
-    const userDoc = await getDoc(userDocRef);
+    let userDoc = await getDoc(userDocRef);
     
     if (!userDoc.exists()) {
       console.warn('⚠️ User document not found for:', userId);
       
       // ✅ Auto-create if enabled
       if (autoCreate) {
-        const created = await autoCreateUserDocument(userId);
+        console.log('🔄 Attempting auto-create...');
         
-        if (created) {
+        const createdRole = await autoCreateUserDocument(userId);
+        
+        if (createdRole) {
           // Fetch the newly created document
-          const newUserDoc = await getDoc(userDocRef);
-          if (newUserDoc.exists()) {
-            const newUserData = newUserDoc.data();
+          userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const newUserData = userDoc.data();
             console.log('✅ Returning auto-created role:', newUserData.role);
             return newUserData.role || null;
           }
+        } else {
+          console.warn('⚠️ Auto-create failed');
         }
       }
       
@@ -212,7 +219,7 @@ export async function getUserRole(userId, autoCreate = true) {
  * @returns {Promise<boolean>}
  */
 export async function isAdmin(userId) {
-  const role = await getUserRole(userId, true); // Auto-create enabled
+  const role = await getUserRole(userId, true);
   return role === ROLES.ADMIN;
 }
 
@@ -249,7 +256,7 @@ export async function getCurrentUserWithRole() {
   
   if (!user) return null;
   
-  const role = await getUserRole(user.uid, true); // Auto-create enabled
+  const role = await getUserRole(user.uid, true);
   
   return {
     ...user,
@@ -266,6 +273,11 @@ export async function getCurrentUserWithRole() {
  */
 export async function createOrUpdateUser(userId, userData) {
   try {
+    if (!userId) {
+      console.error('❌ No userId provided');
+      return false;
+    }
+    
     const userDocRef = doc(db, COLLECTIONS.USERS, userId);
     
     await setDoc(userDocRef, {
