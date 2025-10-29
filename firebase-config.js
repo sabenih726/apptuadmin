@@ -2,18 +2,12 @@
 console.log('🔥 Loading firebase-config.js...');
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getAuth, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
-import { getFirestore, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 // ========================================
 // FIREBASE CONFIGURATION
 // ========================================
-// ⚠️ CATATAN KEAMANAN:
-// - API Key di client-side adalah AMAN untuk Firebase
-// - Firebase menggunakan Security Rules untuk proteksi data
-// - Pastikan Firestore Rules sudah dikonfigurasi dengan benar
-// ========================================
-
 const firebaseConfig = {
   apiKey: "AIzaSyAQcqTo-sWcgVTiXd84eBeeeDKTo7R_A10",
   authDomain: "apptuadmin.firebaseapp.com",
@@ -25,12 +19,10 @@ const firebaseConfig = {
 };
 
 // ========================================
-// ENVIRONMENT & DEBUG SETTINGS
+// ENVIRONMENT DETECTION
 // ========================================
 const isDevelopment = window.location.hostname === 'localhost' || 
                       window.location.hostname === '127.0.0.1';
-const isProduction = window.location.hostname.includes('firebaseapp.com') || 
-                     window.location.hostname.includes('web.app');
 
 console.log('Environment:', isDevelopment ? 'Development' : 'Production');
 console.log('Project ID:', firebaseConfig.projectId);
@@ -60,7 +52,6 @@ function validateConfig(config) {
   return true;
 }
 
-// Validate before initializing
 validateConfig(firebaseConfig);
 
 // ========================================
@@ -69,30 +60,14 @@ validateConfig(firebaseConfig);
 let app, auth, db;
 
 try {
-  // Initialize Firebase App
   app = initializeApp(firebaseConfig);
   console.log('✅ Firebase App initialized');
   
-  // Initialize Auth
   auth = getAuth(app);
   console.log('✅ Firebase Auth initialized');
   
-  // Initialize Firestore
   db = getFirestore(app);
   console.log('✅ Firestore initialized');
-  
-  // ========================================
-  // EMULATOR CONNECTION (untuk development)
-  // ========================================
-  // Uncomment untuk menggunakan Firebase Emulator
-  /*
-  if (isDevelopment) {
-    console.log('🔧 Connecting to Firebase Emulators...');
-    connectAuthEmulator(auth, 'http://localhost:9099');
-    connectFirestoreEmulator(db, 'localhost', 8080);
-    console.log('✅ Connected to Emulators');
-  }
-  */
   
   console.log(`✅ Firebase fully initialized (${firebaseConfig.projectId})`);
   
@@ -102,7 +77,7 @@ try {
 }
 
 // ========================================
-// COLLECTION PATHS
+// COLLECTION NAMES
 // ========================================
 const COLLECTIONS = {
   ATTENDANCE: 'attendance',
@@ -111,6 +86,103 @@ const COLLECTIONS = {
   SETTINGS: 'settings',
   LOGS: 'logs'
 };
+
+// ========================================
+// USER ROLES
+// ========================================
+const ROLES = {
+  ADMIN: 'admin',
+  EMPLOYEE: 'employee',
+  MANAGER: 'manager',
+  SUPERVISOR: 'supervisor'
+};
+
+console.log('📋 Collections:', COLLECTIONS);
+console.log('👥 Roles:', ROLES);
+
+// ========================================
+// ROLE MANAGEMENT FUNCTIONS
+// ========================================
+
+/**
+ * Get user role from Firestore
+ * @param {string} userId - User ID
+ * @returns {Promise<string|null>} User role or null
+ */
+export async function getUserRole(userId) {
+  try {
+    if (!userId) {
+      console.warn('⚠️ getUserRole: No userId provided');
+      return null;
+    }
+    
+    const userDoc = await getDoc(doc(db, COLLECTIONS.USERS, userId));
+    
+    if (!userDoc.exists()) {
+      console.warn('⚠️ User document not found for:', userId);
+      return null;
+    }
+    
+    const userData = userDoc.data();
+    return userData.role || null;
+    
+  } catch (error) {
+    console.error('❌ Error getting user role:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if user is admin
+ * @param {string} userId - User ID
+ * @returns {Promise<boolean>}
+ */
+export async function isAdmin(userId) {
+  const role = await getUserRole(userId);
+  return role === ROLES.ADMIN;
+}
+
+/**
+ * Check if user has specific role
+ * @param {string} userId - User ID
+ * @param {string} requiredRole - Required role
+ * @returns {Promise<boolean>}
+ */
+export async function hasRole(userId, requiredRole) {
+  const role = await getUserRole(userId);
+  return role === requiredRole;
+}
+
+/**
+ * Get current user
+ * @returns {Promise<object|null>}
+ */
+export function getCurrentUser() {
+  return new Promise((resolve) => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      unsubscribe();
+      resolve(user);
+    });
+  });
+}
+
+/**
+ * Get current user with role
+ * @returns {Promise<object|null>}
+ */
+export async function getCurrentUserWithRole() {
+  const user = await getCurrentUser();
+  
+  if (!user) return null;
+  
+  const role = await getUserRole(user.uid);
+  
+  return {
+    ...user,
+    role: role,
+    isAdmin: role === ROLES.ADMIN
+  };
+}
 
 // ========================================
 // HELPER FUNCTIONS
@@ -136,6 +208,14 @@ export function getCollections() {
 }
 
 /**
+ * Get all role names
+ * @returns {object} All role names
+ */
+export function getRoles() {
+  return ROLES;
+}
+
+/**
  * Check if Firebase is initialized
  * @returns {boolean}
  */
@@ -144,7 +224,7 @@ export function isFirebaseInitialized() {
 }
 
 /**
- * Get Firebase configuration (without sensitive data)
+ * Get Firebase configuration info (safe, no sensitive data)
  * @returns {object} Safe config
  */
 export function getFirebaseInfo() {
@@ -156,19 +236,6 @@ export function getFirebaseInfo() {
   };
 }
 
-/**
- * Check current user authentication status
- * @returns {Promise<object|null>} Current user or null
- */
-export function getCurrentUser() {
-  return new Promise((resolve) => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      unsubscribe();
-      resolve(user);
-    });
-  });
-}
-
 // ========================================
 // EXPORTS
 // ========================================
@@ -178,21 +245,25 @@ export {
   db, 
   firebaseConfig,
   isDevelopment,
-  isProduction,
-  COLLECTIONS
+  COLLECTIONS,
+  ROLES  // ✅ Make sure ROLES is exported
 };
 
-// Make available globally for legacy code (optional)
+// ========================================
+// GLOBAL EXPOSURE (Optional - for legacy code)
+// ========================================
 if (typeof window !== 'undefined') {
   window.firebaseApp = app;
   window.firebaseAuth = auth;
   window.firebaseDB = db;
   window.firebaseConfig = firebaseConfig;
+  window.COLLECTIONS = COLLECTIONS;
+  window.ROLES = ROLES;
   console.log('✅ Firebase exposed to window object');
 }
 
 // ========================================
-// STARTUP CHECK
+// STARTUP LOG
 // ========================================
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🔥 Firebase Configuration Ready');
@@ -200,4 +271,6 @@ console.log('Project:', firebaseConfig.projectId);
 console.log('Environment:', isDevelopment ? '🔧 Development' : '🚀 Production');
 console.log('Auth:', auth ? '✅' : '❌');
 console.log('Firestore:', db ? '✅' : '❌');
+console.log('Collections:', Object.keys(COLLECTIONS).join(', '));
+console.log('Roles:', Object.keys(ROLES).join(', '));
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
