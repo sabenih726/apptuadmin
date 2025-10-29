@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistem Absensi - [Nama Perusahaan Anda]</title>
+  <title>Sistem Absensi - ApptU Admin</title>
+  
+  <!-- Manifest & PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1e3a8a">
   
   <!-- TailwindCSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -12,11 +16,11 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <style>
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'IBM Plex Mono', monospace;
       background: linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%);
       min-height: 100vh;
     }
@@ -36,27 +40,38 @@
       transform: translateY(2px);
       box-shadow: 0 2px 0 rgba(0,0,0,0.2);
     }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 
 <body class="flex items-center justify-center min-h-screen p-4">
   
   <!-- Main Container -->
-  <div class="w-full max-w-md">
+  <div class="w-full max-w-md fade-in">
     
     <!-- Company Logo/Header -->
     <div class="text-center mb-8">
-      <!-- Ganti dengan logo perusahaan Anda -->
-      <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full mb-4">
-        <i class="fas fa-building text-3xl text-blue-600"></i>
+      <div class="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4 shadow-2xl">
+        <i class="fas fa-user-clock text-4xl text-white"></i>
       </div>
       
-      <h1 class="text-3xl font-bold text-white mb-2">
-        Sistem Absensi Digital
+      <h1 class="text-4xl font-bold text-white mb-2">
+        ApptU Admin
       </h1>
-      <p class="text-gray-300">
-        <!-- Ganti dengan nama perusahaan Anda -->
-        PT. Nama Perusahaan Anda
+      <p class="text-gray-300 text-lg">
+        Sistem Absensi Digital
+      </p>
+      <p class="text-gray-400 text-sm mt-1">
+        <i class="fas fa-shield-alt mr-1"></i>
+        Secure & Modern Attendance System
       </p>
     </div>
     
@@ -69,57 +84,74 @@
           Selamat Datang
         </h2>
         <p class="text-gray-300 text-sm">
-          Silakan pilih menu sesuai dengan role Anda
+          Pilih menu sesuai dengan akses Anda
         </p>
       </div>
       
       <!-- Current Time Display -->
-      <div class="bg-black bg-opacity-30 rounded-lg p-3 mb-6">
+      <div class="bg-black bg-opacity-30 rounded-lg p-4 mb-6">
         <div class="text-center">
-          <p class="text-gray-400 text-xs">Waktu Saat Ini</p>
-          <p id="current-time" class="text-2xl font-bold text-white"></p>
-          <p id="current-date" class="text-sm text-gray-300"></p>
+          <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Waktu Saat Ini</p>
+          <p id="current-time" class="text-3xl font-bold text-white tabular-nums"></p>
+          <p id="current-date" class="text-sm text-gray-300 mt-1"></p>
+        </div>
+      </div>
+      
+      <!-- User Status (if logged in) -->
+      <div id="user-status" class="hidden mb-4 p-3 bg-blue-900 bg-opacity-30 rounded-lg border border-blue-500">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <i class="fas fa-user-circle text-blue-400 text-xl mr-2"></i>
+            <div>
+              <p class="text-white text-sm font-semibold" id="user-email">-</p>
+              <p class="text-gray-400 text-xs" id="user-role">-</p>
+            </div>
+          </div>
+          <button onclick="logout()" class="text-red-400 hover:text-red-300 text-xs">
+            <i class="fas fa-sign-out-alt mr-1"></i>
+            Logout
+          </button>
         </div>
       </div>
       
       <!-- Menu Buttons -->
       <div class="space-y-3">
         
-        <!-- Employee Login -->
+        <!-- Employee Attendance -->
         <button onclick="goToEmployee()" 
-                class="btn-3d w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-lg transition-all">
+                class="btn-3d w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-4 px-6 rounded-lg transition-all">
           <div class="flex items-center justify-between">
             <div class="flex items-center">
-              <i class="fas fa-user-clock text-xl mr-3"></i>
+              <i class="fas fa-user-clock text-2xl mr-3"></i>
               <div class="text-left">
-                <p class="font-semibold">Absensi Karyawan</p>
-                <p class="text-xs opacity-75">Untuk melakukan absensi harian</p>
+                <p class="font-semibold text-base">Absensi Karyawan</p>
+                <p class="text-xs opacity-90">Camera-based attendance with GPS</p>
               </div>
             </div>
             <i class="fas fa-chevron-right"></i>
           </div>
         </button>
         
-        <!-- Admin Login -->
+        <!-- Admin Dashboard -->
         <button onclick="goToAdmin()" 
-                class="btn-3d w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-4 px-6 rounded-lg transition-all">
+                class="btn-3d w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-4 px-6 rounded-lg transition-all">
           <div class="flex items-center justify-between">
             <div class="flex items-center">
-              <i class="fas fa-user-shield text-xl mr-3"></i>
+              <i class="fas fa-chart-line text-2xl mr-3"></i>
               <div class="text-left">
-                <p class="font-semibold">Admin Dashboard</p>
-                <p class="text-xs opacity-75">Untuk HR/Admin mengelola absensi</p>
+                <p class="font-semibold text-base">Admin Dashboard</p>
+                <p class="text-xs opacity-90">Real-time monitoring & reports</p>
               </div>
             </div>
             <i class="fas fa-chevron-right"></i>
           </div>
         </button>
         
-        <!-- Guest Access (Optional) -->
-        <button onclick="goToGuest()" 
+        <!-- Staff Login -->
+        <button onclick="goToLogin()" 
                 class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-all">
-          <i class="fas fa-user mr-2"></i>
-          Masuk sebagai Tamu (Demo)
+          <i class="fas fa-sign-in-alt mr-2"></i>
+          Login dengan Email
         </button>
       </div>
       
@@ -127,87 +159,169 @@
       <div class="my-6 border-t border-gray-600"></div>
       
       <!-- Quick Links -->
-      <div class="grid grid-cols-2 gap-3 text-center">
-        <a href="#" onclick="showHelp()" class="text-gray-300 hover:text-white text-sm">
-          <i class="fas fa-question-circle mr-1"></i>
-          Bantuan
+      <div class="grid grid-cols-3 gap-3 text-center">
+        <a href="#" onclick="showHelp(); return false;" class="text-gray-300 hover:text-white text-sm transition">
+          <i class="fas fa-question-circle block text-lg mb-1"></i>
+          <span class="text-xs">Bantuan</span>
         </a>
-        <a href="#" onclick="showInfo()" class="text-gray-300 hover:text-white text-sm">
-          <i class="fas fa-info-circle mr-1"></i>
-          Informasi
+        <a href="#" onclick="showInfo(); return false;" class="text-gray-300 hover:text-white text-sm transition">
+          <i class="fas fa-info-circle block text-lg mb-1"></i>
+          <span class="text-xs">Info</span>
+        </a>
+        <a href="setup-admin.html" class="text-gray-300 hover:text-white text-sm transition">
+          <i class="fas fa-cog block text-lg mb-1"></i>
+          <span class="text-xs">Setup</span>
         </a>
       </div>
     </div>
     
-    <!-- Office Info (Optional) -->
-    <div class="text-center mt-6 text-gray-400 text-sm">
-      <p>
-        <i class="fas fa-map-marker-alt mr-1"></i>
-        Kantor Pusat: Jl. Contoh No. 123, Jakarta
+    <!-- System Info -->
+    <div class="text-center mt-6 text-gray-400 text-sm glass rounded-lg p-4">
+      <p class="flex items-center justify-center">
+        <i class="fas fa-server mr-2"></i>
+        <span id="system-status" class="text-green-400">System Online</span>
       </p>
-      <p class="mt-1">
-        <i class="fas fa-phone mr-1"></i>
-        IT Support: (021) 1234-5678
+      <p class="mt-2 text-xs">
+        <i class="fas fa-database mr-1"></i>
+        Firebase Project: <span class="text-gray-300 font-mono">apptuadmin</span>
       </p>
     </div>
     
     <!-- Footer -->
-    <div class="text-center mt-8 text-gray-500 text-xs">
-      <p>&copy; 2024 PT. Nama Perusahaan Anda</p>
-      <p class="mt-1">Internal Use Only - Confidential</p>
+    <div class="text-center mt-6 text-gray-500 text-xs">
+      <p>&copy; 2024 ApptU Admin System</p>
+      <p class="mt-1">
+        Powered by Firebase • Built with ❤️
+      </p>
     </div>
   </div>
   
   <!-- Help Modal -->
   <div id="help-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-    <div class="glass rounded-2xl p-6 max-w-sm m-4">
-      <h3 class="text-xl font-bold text-white mb-4">Panduan Penggunaan</h3>
-      <div class="space-y-3 text-gray-300 text-sm">
-        <div>
-          <p class="font-semibold text-white">Untuk Karyawan:</p>
-          <ul class="list-disc list-inside ml-2">
+    <div class="glass rounded-2xl p-6 max-w-md m-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold text-white">
+          <i class="fas fa-book-open mr-2"></i>
+          Panduan Penggunaan
+        </h3>
+        <button onclick="closeHelp()" class="text-gray-400 hover:text-white">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="space-y-4 text-gray-300 text-sm">
+        <div class="bg-blue-900 bg-opacity-20 p-3 rounded-lg">
+          <p class="font-semibold text-white flex items-center mb-2">
+            <i class="fas fa-user-clock mr-2 text-blue-400"></i>
+            Untuk Karyawan
+          </p>
+          <ol class="list-decimal list-inside ml-2 space-y-1 text-xs">
             <li>Klik "Absensi Karyawan"</li>
             <li>Izinkan akses kamera & lokasi</li>
-            <li>Ambil foto selfie</li>
-            <li>Submit absensi</li>
-          </ul>
+            <li>Ambil foto selfie untuk verifikasi</li>
+            <li>Submit absensi masuk/pulang</li>
+          </ol>
         </div>
-        <div>
-          <p class="font-semibold text-white">Untuk Admin/HR:</p>
-          <ul class="list-disc list-inside ml-2">
+        
+        <div class="bg-purple-900 bg-opacity-20 p-3 rounded-lg">
+          <p class="font-semibold text-white flex items-center mb-2">
+            <i class="fas fa-chart-line mr-2 text-purple-400"></i>
+            Untuk Admin/HR
+          </p>
+          <ol class="list-decimal list-inside ml-2 space-y-1 text-xs">
             <li>Klik "Admin Dashboard"</li>
             <li>Login dengan akun admin</li>
             <li>Monitor absensi real-time</li>
-            <li>Export laporan</li>
+            <li>Lihat foto & lokasi karyawan</li>
+            <li>Hapus data jika diperlukan</li>
+          </ol>
+        </div>
+        
+        <div class="bg-gray-800 p-3 rounded-lg">
+          <p class="font-semibold text-white flex items-center mb-2">
+            <i class="fas fa-keyboard mr-2 text-gray-400"></i>
+            Keyboard Shortcuts
+          </p>
+          <ul class="text-xs space-y-1">
+            <li><kbd class="px-2 py-1 bg-gray-700 rounded">1</kbd> - Absensi Karyawan</li>
+            <li><kbd class="px-2 py-1 bg-gray-700 rounded">2</kbd> - Admin Dashboard</li>
+            <li><kbd class="px-2 py-1 bg-gray-700 rounded">?</kbd> - Help</li>
           </ul>
         </div>
       </div>
-      <button onclick="closeHelp()" class="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg">
-        Tutup
+      
+      <button onclick="closeHelp()" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition">
+        <i class="fas fa-check mr-2"></i>
+        Mengerti
       </button>
     </div>
   </div>
   
   <!-- JavaScript -->
+  <script type="module">
+    import { auth, getCurrentUserWithRole } from '/firebase-config.js';
+    import { signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+    
+    console.log('🏠 Index page loaded');
+    
+    // Check auth state
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userWithRole = await getCurrentUserWithRole();
+          
+          if (userWithRole) {
+            document.getElementById('user-status').classList.remove('hidden');
+            document.getElementById('user-email').textContent = user.email || 'Anonymous';
+            document.getElementById('user-role').textContent = 
+              userWithRole.role ? `Role: ${userWithRole.role}` : 'Role: employee';
+          }
+        } catch (error) {
+          console.error('Error getting user role:', error);
+        }
+      }
+    });
+    
+    // Global logout function
+    window.logout = async function() {
+      if (!confirm('Logout dari sistem?')) return;
+      
+      try {
+        await signOut(auth);
+        document.getElementById('user-status').classList.add('hidden');
+        console.log('✅ Logged out');
+      } catch (error) {
+        console.error('Logout error:', error);
+        alert('Logout failed: ' + error.message);
+      }
+    };
+  </script>
+  
   <script>
     // Update clock
     function updateClock() {
       const now = new Date();
       
-      // Time
-      document.getElementById('current-time').textContent = now.toLocaleTimeString('id-ID', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      });
+      // Time with milliseconds for smooth update
+      const timeEl = document.getElementById('current-time');
+      if (timeEl) {
+        timeEl.textContent = now.toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+      }
       
       // Date
-      document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
+      const dateEl = document.getElementById('current-date');
+      if (dateEl) {
+        dateEl.textContent = now.toLocaleDateString('id-ID', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      }
     }
     
     // Update every second
@@ -216,18 +330,19 @@
     
     // Navigation functions
     function goToEmployee() {
-      window.location.href = 'employee.html';
+      console.log('➡️ Navigating to employee page...');
+      window.location.href = '/employee.html';
     }
     
     function goToAdmin() {
-      // Bisa langsung ke admin atau ke login dulu
-      window.location.href = 'login.html?redirect=admin';
+      console.log('➡️ Navigating to admin dashboard...');
+      // ✅ FIX: Force logout before going to login
+      window.location.href = '/login.html?logout=true&redirect=admin';
     }
     
-    function goToGuest() {
-      // Set guest mode flag
-      sessionStorage.setItem('guestMode', 'true');
-      window.location.href = 'employee.html';
+    function goToLogin() {
+      console.log('➡️ Navigating to login page...');
+      window.location.href = '/login.html';
     }
     
     // Modal functions
@@ -240,48 +355,91 @@
     }
     
     function showInfo() {
-      alert('Sistem Absensi Digital v2.0\n\nDikembangkan oleh: Tim IT\nUntuk pertanyaan hubungi: it@perusahaan.com');
+      const info = `
+ApptU Admin System v2.0
+
+Features:
+✓ Camera-based attendance
+✓ GPS location tracking
+✓ Real-time dashboard
+✓ Photo verification
+✓ Role-based access control
+
+Technology Stack:
+• Firebase (Auth, Firestore, Hosting)
+• TailwindCSS
+• Vanilla JavaScript ES6+
+
+Contact:
+📧 support@apptu.com
+🌐 https://apptuadmin.web.app
+
+© 2024 ApptU Admin
+      `.trim();
+      
+      alert(info);
     }
     
-    // Check working hours (optional)
+    // Check working hours
     function checkWorkingHours() {
       const now = new Date();
       const hour = now.getHours();
+      const statusEl = document.getElementById('system-status');
       
-      // Misalnya jam kerja 7:00 - 18:00
-      if (hour >= 7 && hour <= 18) {
-        // Working hours
-        document.body.classList.add('working-hours');
+      if (hour >= 6 && hour < 18) {
+        statusEl.textContent = 'System Online';
+        statusEl.className = 'text-green-400';
       } else {
-        // Outside working hours
-        console.log('Di luar jam kerja');
+        statusEl.textContent = 'After Hours';
+        statusEl.className = 'text-yellow-400';
       }
     }
     
     checkWorkingHours();
+    setInterval(checkWorkingHours, 60000); // Update every minute
     
-    // Keyboard shortcuts (optional)
+    // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       if (e.key === '1') goToEmployee();
       if (e.key === '2') goToAdmin();
       if (e.key === '?') showHelp();
+      if (e.key === 'Escape') closeHelp();
     });
     
-    // Add subtle animation on load
+    // Close modal on outside click
+    document.getElementById('help-modal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'help-modal') {
+        closeHelp();
+      }
+    });
+    
+    // Page load animation
     document.addEventListener('DOMContentLoaded', () => {
-      const buttons = document.querySelectorAll('button');
-      buttons.forEach((btn, index) => {
-        setTimeout(() => {
-          btn.style.opacity = '0';
-          btn.style.transform = 'translateY(20px)';
-          btn.style.transition = 'all 0.5s ease';
-          
-          setTimeout(() => {
-            btn.style.opacity = '1';
-            btn.style.transform = 'translateY(0)';
-          }, 100);
-        }, index * 100);
+      console.log('✅ Index page ready');
+      
+      // Check online status
+      window.addEventListener('online', () => {
+        document.getElementById('system-status').textContent = 'System Online';
+        document.getElementById('system-status').className = 'text-green-400';
       });
+      
+      window.addEventListener('offline', () => {
+        document.getElementById('system-status').textContent = 'Offline Mode';
+        document.getElementById('system-status').className = 'text-red-400';
+      });
+    });
+    
+    // PWA Install prompt
+    let deferredPrompt;
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      
+      console.log('💡 PWA install available');
+      
+      // You can show an install button here
+      // For now, just log it
     });
   </script>
 </body>
