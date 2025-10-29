@@ -1,6 +1,6 @@
 {
-  "name": "ApptU - Sistem Absensi",
-  "short_name": "ApptU",
+  "name": "ATTENDANCE APP - Sistem Absensi",
+  "short_name": "ATTENDANCE",
   "description": "Sistem Absensi Karyawan dengan Photo & GPS Tracking",
   "start_url": "/",
   "display": "standalone",
