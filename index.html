@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ATTENDANCE TU ADMIN - Trakindo</title>
+  <title>ATTENDANCE TU ADMIN</title>
   
   <!-- Manifest & PWA -->
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#FFCD00">
+  <meta name="theme-color" content="#1e3a8a">
   
   <!-- TailwindCSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -49,16 +49,6 @@
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
-    /* Logo animation */
-    .logo-container {
-      animation: logoFloat 3s ease-in-out infinite;
-    }
-
-    @keyframes logoFloat {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
-    }
   </style>
 </head>
 
@@ -68,11 +58,10 @@
   <div class="w-full max-w-md fade-in">
     
     <!-- Company Logo/Header -->
-    <div class="inline-flex items-center justify-center w-32 h-32 mb-4">
-      <img src="/assets/logo-trakindo.png" 
-           alt="Trakindo CAT Logo" 
-           class="w-full h-full object-contain drop-shadow-2xl">
-    </div>
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4 shadow-2xl">
+        <i class="fas fa-user-clock text-4xl text-white"></i>
+      </div>
       
       <h1 class="text-3xl font-bold text-white mb-2">
         ATTENDANCE TU ADMIN
@@ -92,17 +81,17 @@
       <!-- Welcome Message -->
       <div class="text-center mb-6">
         <h2 class="text-xl font-semibold text-white mb-2">
-          Selamat Datang
+          Welcome
         </h2>
         <p class="text-gray-200 text-sm">
-          Pilih menu sesuai akses Anda
+          Select the menu your access
         </p>
       </div>
       
       <!-- Current Time Display -->
       <div class="bg-black bg-opacity-30 rounded-lg p-4 mb-6">
         <div class="text-center">
-          <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Waktu Saat Ini</p>
+          <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Current Time</p>
           <p id="current-time" class="text-3xl font-bold text-white tabular-nums"></p>
           <p id="current-date" class="text-sm text-gray-300 mt-1"></p>
         </div>
@@ -128,22 +117,22 @@
       <!-- Menu Buttons -->
       <div class="space-y-3">
         
-        <!-- Employee Attendance -->
+        <!-- ✅ Employee Attendance - Fixed structure -->
         <a href="login.html?redirect=employee" 
            class="btn-3d w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-4 px-6 rounded-lg transition-all block">
           <div class="flex items-center justify-between">
             <div class="flex items-center">
               <i class="fas fa-user-clock text-2xl mr-3"></i>
               <div class="text-left">
-                <p class="font-semibold text-base">Absensi Karyawan</p>
-                <p class="text-xs opacity-90">Login diperlukan • Kamera & GPS aktif</p>
+                <p class="font-semibold text-base">Employee Attendance</p>
+                <p class="text-xs opacity-90">Login required • Camera & GPS tracking</p>
               </div>
             </div>
             <i class="fas fa-chevron-right"></i>
           </div>
         </a>
         
-        <!-- Admin Dashboard -->
+        <!-- ✅ Admin Dashboard - Fixed structure -->
         <a href="login.html?logout=true&redirect=admin" 
            class="btn-3d w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-4 px-6 rounded-lg transition-all block">
           <div class="flex items-center justify-between">
@@ -151,14 +140,14 @@
               <i class="fas fa-chart-line text-2xl mr-3"></i>
               <div class="text-left">
                 <p class="font-semibold text-base">Admin Dashboard</p>
-                <p class="text-xs opacity-90">Monitoring & laporan real-time</p>
+                <p class="text-xs opacity-90">Real-time monitoring & reports</p>
               </div>
             </div>
             <i class="fas fa-chevron-right"></i>
           </div>
         </a>
         
-        <!-- Staff Login -->
+        <!-- ✅ Staff Login - Fixed structure -->
         <button onclick="goToLogin()" 
                 class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-all">
           <i class="fas fa-sign-in-alt mr-2"></i>
@@ -197,16 +186,16 @@
     
     <!-- Footer -->
     <div class="text-center mt-6 text-gray-500 text-xs">
-      <p>&copy; 2025 Facility Maintenance Services</p>
+      <p>&copy; © 2025 Facility Maintenence Services</p>
       <p class="mt-1">
-        Powered by General Service TU - Trakindo
+        Powered by General Service TU
       </p>
     </div>
   </div>
   
   <!-- Help Modal -->
   <div id="help-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-    <div class="glass rounded-2xl p-6 max-w-md m-4 max-h-[90vh] overflow-y-auto">
+    <div class="glass rounded-2xl p-6 max-w-md m-4">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-xl font-bold text-white">
           <i class="fas fa-book-open mr-2"></i>
@@ -365,7 +354,6 @@
       const info = `
 ╔════════════════════════════════════════╗
 ║   ApptU Admin System v2.0              ║
-║   Trakindo CAT - Attendance System     ║
 ╚════════════════════════════════════════╝
 
 ✨ FEATURES:
@@ -382,11 +370,10 @@
   • Vanilla JavaScript ES6+
 
 📧 CONTACT:
-  Email: support@trakindo.com
+  Email: support@admin.com
   Web: https://apptuadmin.web.app
 
-© 2025 Facility Maintenance Services
-Powered by Trakindo
+© 2025 Facility Maintenence Services
       `.trim();
       
       alert(info);
