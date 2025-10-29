@@ -1,81 +1,215 @@
-<!-- admin.html - SIMPLIFIED VERSION -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Admin - Absensi Karyawan</title>
+  <title>Dashboard Admin - Sistem Absensi</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    body {
+      font-family: 'IBM Plex Mono', monospace;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    }
+    
+    .card {
+      background: rgba(30, 41, 59, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(71, 85, 105, 0.5);
+    }
+    
+    table tbody tr:hover {
+      background: rgba(71, 85, 105, 0.3);
+    }
+    
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .loader {
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top: 3px solid #818cf8;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col items-center p-6" style="background: #0f172a; color: #e2e8f0;">
+
+<body class="min-h-screen p-6 text-gray-200">
 
   <!-- HEADER -->
-  <header class="w-full max-w-5xl flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold" style="color: #818cf8;">
-      Dashboard Admin
-    </h1>
-    <a href="index.html" class="text-sm" style="color: #9ca3af;">← Kembali</a>
+  <header class="max-w-7xl mx-auto mb-8">
+    <div class="flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-indigo-400 mb-2">
+          <i class="fas fa-chart-line mr-2"></i>Dashboard Admin
+        </h1>
+        <p class="text-gray-400">Sistem Manajemen Absensi Karyawan</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="user-info" class="text-sm text-gray-400"></span>
+        <button onclick="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition">
+          <i class="fas fa-sign-out-alt mr-2"></i>Logout
+        </button>
+      </div>
+    </div>
   </header>
 
-  <!-- MAIN GRID -->
-  <main class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl">
+  <!-- STATS CARDS -->
+  <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div class="card rounded-xl p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-gray-400 text-sm">Total Hari Ini</p>
+          <p class="text-2xl font-bold" id="stat-today">0</p>
+        </div>
+        <i class="fas fa-calendar-day text-3xl text-blue-500"></i>
+      </div>
+    </div>
+    
+    <div class="card rounded-xl p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-gray-400 text-sm">Hadir</p>
+          <p class="text-2xl font-bold text-green-400" id="stat-present">0</p>
+        </div>
+        <i class="fas fa-user-check text-3xl text-green-500"></i>
+      </div>
+    </div>
+    
+    <div class="card rounded-xl p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-gray-400 text-sm">Masuk</p>
+          <p class="text-2xl font-bold text-blue-400" id="stat-in">0</p>
+        </div>
+        <i class="fas fa-sign-in-alt text-3xl text-blue-500"></i>
+      </div>
+    </div>
+    
+    <div class="card rounded-xl p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-gray-400 text-sm">Pulang</p>
+          <p class="text-2xl font-bold text-yellow-400" id="stat-out">0</p>
+        </div>
+        <i class="fas fa-sign-out-alt text-3xl text-yellow-500"></i>
+      </div>
+    </div>
+  </div>
 
-    <!-- Tabel Riwayat -->
-    <section style="background: #1e293b; border-radius: 1rem; padding: 1.25rem;">
-      <h2 class="text-lg font-semibold mb-3">Riwayat Absensi</h2>
-      <div style="overflow-y: auto; max-height: 70vh;">
-        <table style="width: 100%; border-collapse: collapse;">
-          <thead>
+  <!-- MAIN CONTENT -->
+  <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+    
+    <!-- Attendance Table (2 columns wide) -->
+    <div class="lg:col-span-2 card rounded-xl p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold">
+          <i class="fas fa-list mr-2"></i>Riwayat Absensi
+        </h2>
+        <div class="flex gap-2">
+          <input 
+            type="date" 
+            id="filter-date" 
+            class="bg-gray-700 px-3 py-1 rounded-lg text-sm"
+            onchange="filterByDate()"
+          >
+          <button onclick="exportData()" class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded-lg text-sm transition">
+            <i class="fas fa-download"></i> Export
+          </button>
+        </div>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="border-b border-gray-600">
             <tr>
-              <th style="padding: 0.5rem; text-align: left;">Waktu</th>
-              <th style="padding: 0.5rem; text-align: left;">Status</th>
-              <th style="padding: 0.5rem; text-align: left;">User</th>
-              <th style="padding: 0.5rem; text-align: left;">Lokasi</th>
-              <th style="padding: 0.5rem; text-align: left;">Aksi</th>
+              <th class="text-left py-3 px-2">Waktu</th>
+              <th class="text-left py-3 px-2">User</th>
+              <th class="text-left py-3 px-2">Status</th>
+              <th class="text-left py-3 px-2">Lokasi</th>
+              <th class="text-center py-3 px-2">Aksi</th>
             </tr>
           </thead>
           <tbody id="attendance-table-body">
-            <tr><td colspan="5" align="center" style="padding: 1rem;">Memuat data...</td></tr>
+            <tr>
+              <td colspan="5" class="text-center py-8">
+                <div class="loader mx-auto"></div>
+                <p class="mt-4 text-gray-400">Memuat data...</p>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
-    </section>
+    </div>
 
-    <!-- Detail Foto -->
-    <section style="background: #1e293b; border-radius: 1rem; padding: 1.25rem;">
-      <h2 class="text-lg font-semibold mb-3 text-center">Detail Absensi</h2>
-
-      <div id="no-photo-msg" class="text-center my-6" style="color: #6b7280;">
-        Pilih data untuk melihat detail.
+    <!-- Detail Panel (1 column) -->
+    <div class="card rounded-xl p-6">
+      <h2 class="text-xl font-semibold mb-4">
+        <i class="fas fa-info-circle mr-2"></i>Detail Absensi
+      </h2>
+      
+      <div id="no-selection" class="text-center py-8 text-gray-400">
+        <i class="fas fa-mouse-pointer text-4xl mb-4"></i>
+        <p>Pilih data untuk melihat detail</p>
       </div>
-
-      <img id="verification-photo" class="hidden rounded-lg w-64 h-48 object-cover mb-4 mx-auto" alt="Foto">
-
-      <div class="text-sm text-center" id="detail-container" style="display:none;">
-        <p id="verif-status" class="font-semibold mb-2"></p>
-        <p id="verif-time" class="mb-2"></p>
-        <p id="verif-coords" class="text-xs mb-2" style="color: #9ca3af;"></p>
-        <a id="verif-map-link" href="#" target="_blank" class="text-blue-400 underline">Lihat di Google Maps</a>
+      
+      <div id="detail-panel" class="hidden">
+        <!-- Photo -->
+        <div class="mb-4">
+          <img id="detail-photo" class="w-full rounded-lg" alt="Foto Absensi">
+        </div>
+        
+        <!-- Info -->
+        <div class="space-y-3 text-sm">
+          <div class="flex justify-between">
+            <span class="text-gray-400">User ID:</span>
+            <span id="detail-user" class="font-mono"></span>
+          </div>
+          
+          <div class="flex justify-between">
+            <span class="text-gray-400">Email:</span>
+            <span id="detail-email"></span>
+          </div>
+          
+          <div class="flex justify-between">
+            <span class="text-gray-400">Status:</span>
+            <span id="detail-status"></span>
+          </div>
+          
+          <div class="flex justify-between">
+            <span class="text-gray-400">Waktu:</span>
+            <span id="detail-time"></span>
+          </div>
+          
+          <div class="flex justify-between">
+            <span class="text-gray-400">Koordinat:</span>
+            <span id="detail-coords" class="font-mono text-xs"></span>
+          </div>
+          
+          <div class="pt-3 border-t border-gray-600">
+            <a id="detail-map" href="#" target="_blank" class="block w-full bg-blue-600 hover:bg-blue-700 text-center py-2 rounded-lg transition">
+              <i class="fas fa-map-marked-alt mr-2"></i>Lihat di Maps
+            </a>
+          </div>
+        </div>
       </div>
-    </section>
-  </main>
+    </div>
+  </div>
 
-  <!-- Pre-load Firebase -->
-  <script type="module">
-    console.log('🔍 Pre-loading Firebase for admin...');
-    
-    import { app, auth, db, getCollectionPath } from '/firebase-config.js';
-    
-    console.log('✅ Config loaded for admin');
-    
-    window.firebaseApp = app;
-    window.firebaseAuth = auth;
-    window.firebaseDB = db;
-    window.getCollectionPath = getCollectionPath;
-  </script>
-
-  <!-- Load admin app -->
+  <!-- JavaScript -->
   <script type="module" src="/js/admin-app.js"></script>
 </body>
 </html>
