@@ -340,34 +340,78 @@
         }, 2000);
         
       } catch (error) {
-        console.error('❌ Error:', error);
-        
-        let errorMsg = 'Gagal menambahkan karyawan';
-        
-        switch(error.code) {
-          case 'auth/email-already-in-use':
-            errorMsg = 'Email sudah digunakan. Gunakan email lain.';
-            break;
-          case 'auth/invalid-email':
-            errorMsg = 'Format email tidak valid';
-            break;
-          case 'auth/weak-password':
-            errorMsg = 'Password terlalu lemah (min 6 karakter)';
-            break;
-          case 'permission-denied':
-            errorMsg = 'Permission denied. Cek Firestore rules!';
-            break;
-          default:
-            errorMsg = error.message;
-        }
-        
-        statusEl.textContent = '❌ ' + errorMsg;
-        statusEl.className = 'text-sm text-center p-2 rounded bg-red-900 bg-opacity-30 text-red-400';
-        
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-plus mr-2"></i>Tambah Karyawan';
+      console.error('❌ Error:', error);
+      
+      let errorMsg = 'Gagal menambahkan karyawan';
+      let errorDetail = '';
+      let showAlert = false;
+      
+      // ✅ IMPROVED ERROR MESSAGES
+      switch(error.code) {
+        case 'auth/email-already-in-use':
+          errorMsg = 'Email sudah terdaftar';
+          errorDetail = `Email "${email}" sudah digunakan oleh user lain.`;
+          showAlert = true;
+          
+          // ✅ Check if user exists in Firestore
+          try {
+            const existingUserQuery = query(
+              collection(db, COLLECTIONS.USERS),
+              where('email', '==', email)
+            );
+            const existingUserSnap = await getDocs(existingUserQuery);
+            
+            if (!existingUserSnap.empty) {
+              errorDetail += '\n\nUser sudah terdaftar di database.';
+            } else {
+              errorDetail += '\n\nUser ada di Auth tapi tidak ada di database. Hubungi IT untuk fix.';
+            }
+          } catch (checkError) {
+            console.error('Error checking existing user:', checkError);
+          }
+          break;
+          
+        case 'auth/invalid-email':
+          errorMsg = 'Format email tidak valid';
+          errorDetail = 'Pastikan format email benar (contoh: nama@company.com)';
+          break;
+          
+        case 'auth/weak-password':
+          errorMsg = 'Password terlalu lemah';
+          errorDetail = 'Password minimal 6 karakter';
+          break;
+          
+        case 'permission-denied':
+          errorMsg = 'Permission denied';
+          errorDetail = 'Tidak ada akses ke Firestore. Cek Firestore rules!';
+          showAlert = true;
+          break;
+          
+        default:
+          errorMsg = 'Gagal menambahkan karyawan';
+          errorDetail = error.message;
       }
+      
+      // Show error in status element
+      statusEl.innerHTML = `
+        <div>
+          <p class="font-semibold">❌ ${errorMsg}</p>
+          <p class="text-xs mt-1 opacity-90">${errorDetail}</p>
+        </div>
+      `;
+      statusEl.className = 'text-sm text-center p-3 rounded bg-red-900 bg-opacity-30 text-red-400';
+      
+      // Show alert for critical errors
+      if (showAlert) {
+        setTimeout(() => {
+          alert(`⚠️ ${errorMsg}\n\n${errorDetail}`);
+        }, 500);
+      }
+      
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-plus mr-2"></i>Tambah Karyawan';
+    }
     });
 
     // Load Employees
