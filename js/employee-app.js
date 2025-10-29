@@ -403,40 +403,143 @@ function loadUserHistory(userId) {
 }
 
 // ========================================
-// GEOLOCATION
+// ✅ NEW: REVERSE GEOCODING FUNCTION
+// ========================================
+
+/**
+ * Get address from coordinates using OpenStreetMap Nominatim
+ * @param {number} latitude - Latitude
+ * @param {number} longitude - Longitude
+ * @returns {Promise<string>} Address string
+ */
+async function getAddressFromCoordinates(latitude, longitude) {
+  try {
+    console.log('🗺️ Getting address from coordinates...');
+    
+    // Using OpenStreetMap Nominatim (Free, no API key needed)
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+        'User-Agent': 'ApptU-Admin-App' // Required by Nominatim
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Geocoding API error');
+    }
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    
+    // Build readable address
+    const address = data.address || {};
+    
+    // Extract relevant parts
+    const parts = [];
+    
+    // Street/Road
+    if (address.road) parts.push(address.road);
+    if (address.neighbourhood) parts.push(address.neighbourhood);
+    
+    // District/Suburb
+    if (address.suburb) parts.push(address.suburb);
+    else if (address.village) parts.push(address.village);
+    
+    // City
+    if (address.city) parts.push(address.city);
+    else if (address.county) parts.push(address.county);
+    else if (address.state) parts.push(address.state);
+    
+    // Use display_name as fallback
+    const addressString = parts.length > 0 
+      ? parts.join(', ')
+      : data.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+    
+    console.log('✅ Address found:', addressString);
+    
+    return addressString;
+    
+  } catch (error) {
+    console.error('❌ Geocoding error:', error);
+    
+    // Fallback to coordinates
+    return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+  }
+}
+
+// ========================================
+// UPDATE: GEOLOCATION FUNCTION
 // ========================================
 async function getLocation() {
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
       updateStatus('Geolokasi tidak didukung');
-      resolve('Unknown');
+      resolve({ address: 'Unknown', latitude: null, longitude: null });
       return;
     }
     
     updateStatus('Mendapatkan lokasi...');
     
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const { latitude, longitude } = position.coords;
-        const locName = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
         
-        attendanceData.locationName = locName;
+        updateStatus('Mendapatkan alamat...');
+        
+        // ✅ Get address from coordinates
+        const address = await getAddressFromCoordinates(latitude, longitude);
+        
+        // Store in state
+        attendanceData.locationName = address;
         attendanceData.latitude = latitude;
         attendanceData.longitude = longitude;
         
-        if (DOM.locationMessage) DOM.locationMessage.textContent = `📍 ${locName}`;
+        // Display address (not coordinates)
+        if (DOM.locationMessage) {
+          DOM.locationMessage.innerHTML = `
+            <div class="flex items-start">
+              <i class="fas fa-map-marker-alt mr-2 mt-1 text-blue-400"></i>
+              <div class="flex-1">
+                <p class="text-sm text-white font-semibold">Lokasi:</p>
+                <p class="text-xs text-gray-300 mt-1">${address}</p>
+                <p class="text-xs text-gray-500 mt-1">
+                  ${latitude.toFixed(6)}, ${longitude.toFixed(6)}
+                </p>
+              </div>
+            </div>
+          `;
+        }
+        
         updateStatus('Lokasi berhasil didapat');
-        console.log('✅ Location acquired:', locName);
-        resolve(locName);
+        resolve({ address, latitude, longitude });
       },
       (error) => {
-        console.warn('⚠️ Location error:', error.message);
+        console.warn('Location error:', error);
         updateStatus('Lanjut tanpa lokasi');
+        
         attendanceData.locationName = 'Location unavailable';
-        if (DOM.locationMessage) DOM.locationMessage.textContent = '📍 Lokasi tidak tersedia';
-        resolve('Unknown');
+        attendanceData.latitude = null;
+        attendanceData.longitude = null;
+        
+        if (DOM.locationMessage) {
+          DOM.locationMessage.innerHTML = `
+            <i class="fas fa-map-marker-alt mr-2 text-red-400"></i>
+            <span class="text-xs text-red-400">Lokasi tidak tersedia</span>
+          `;
+        }
+        
+        resolve({ address: 'Unknown', latitude: null, longitude: null });
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { 
+        enableHighAccuracy: true, 
+        timeout: 15000, // Increased timeout for geocoding
+        maximumAge: 0 
+      }
     );
   });
 }
