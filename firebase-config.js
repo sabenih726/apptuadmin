@@ -7,7 +7,9 @@ import {
   getFirestore, 
   doc, 
   getDoc, 
-  setDoc, 
+  setDoc,
+  addDoc,
+  collection,
   serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
@@ -32,7 +34,6 @@ const isDevelopment = window.location.hostname === 'localhost' ||
 
 console.log('Environment:', isDevelopment ? 'Development' : 'Production');
 console.log('Project ID:', firebaseConfig.projectId);
-console.log('Auth Domain:', firebaseConfig.authDomain);
 
 // ========================================
 // VALIDATE CONFIGURATION
@@ -99,8 +100,59 @@ console.log('📋 Collections:', COLLECTIONS);
 console.log('👥 Roles:', ROLES);
 
 // ========================================
-// ✅ AUTO-CREATE USER DOCUMENT (FIXED)
+// USER MANAGEMENT FUNCTIONS
 // ========================================
+
+/**
+ * Get user role from Firestore (with auto-create)
+ * @param {string} userId - User ID
+ * @param {boolean} autoCreate - Auto-create if missing (default: true)
+ * @returns {Promise<string|null>} User role or null
+ */
+export async function getUserRole(userId, autoCreate = true) {
+  try {
+    if (!userId) {
+      console.warn('⚠️ getUserRole: No userId provided');
+      return null;
+    }
+    
+    const userDocRef = doc(db, COLLECTIONS.USERS, userId);
+    let userDoc = await getDoc(userDocRef);
+    
+    if (!userDoc.exists()) {
+      console.warn('⚠️ User document not found for:', userId);
+      
+      // Auto-create if enabled
+      if (autoCreate) {
+        console.log('🔄 Attempting auto-create...');
+        
+        const createdRole = await autoCreateUserDocument(userId);
+        
+        if (createdRole) {
+          // Fetch the newly created document
+          userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const newUserData = userDoc.data();
+            console.log('✅ Returning auto-created role:', newUserData.role);
+            return newUserData.role || null;
+          }
+        } else {
+          console.warn('⚠️ Auto-create failed');
+        }
+      }
+      
+      return null;
+    }
+    
+    const userData = userDoc.data();
+    return userData.role || null;
+    
+  } catch (error) {
+    console.error('❌ Error getting user role:', error);
+    return null;
+  }
+}
 
 /**
  * Auto-create user document if missing
@@ -108,7 +160,7 @@ console.log('👥 Roles:', ROLES);
  * @param {object} userData - Optional user data
  * @returns {Promise<string|null>} Created role or null
  */
-async function autoCreateUserDocument(userId, userData = {}) {
+export async function autoCreateUserDocument(userId, userData = {}) {
   try {
     const currentUser = auth.currentUser;
     
@@ -158,58 +210,33 @@ async function autoCreateUserDocument(userId, userData = {}) {
   }
 }
 
-// ========================================
-// ROLE MANAGEMENT FUNCTIONS
-// ========================================
-
 /**
- * Get user role from Firestore (with auto-create for missing users)
+ * Manually create or update user document
  * @param {string} userId - User ID
- * @param {boolean} autoCreate - Auto-create if missing (default: true)
- * @returns {Promise<string|null>} User role or null
+ * @param {object} userData - User data
+ * @returns {Promise<boolean>}
  */
-export async function getUserRole(userId, autoCreate = true) {
+export async function createOrUpdateUser(userId, userData) {
   try {
     if (!userId) {
-      console.warn('⚠️ getUserRole: No userId provided');
-      return null;
+      console.error('❌ No userId provided');
+      return false;
     }
     
     const userDocRef = doc(db, COLLECTIONS.USERS, userId);
-    let userDoc = await getDoc(userDocRef);
     
-    if (!userDoc.exists()) {
-      console.warn('⚠️ User document not found for:', userId);
-      
-      // ✅ Auto-create if enabled
-      if (autoCreate) {
-        console.log('🔄 Attempting auto-create...');
-        
-        const createdRole = await autoCreateUserDocument(userId);
-        
-        if (createdRole) {
-          // Fetch the newly created document
-          userDoc = await getDoc(userDocRef);
-          
-          if (userDoc.exists()) {
-            const newUserData = userDoc.data();
-            console.log('✅ Returning auto-created role:', newUserData.role);
-            return newUserData.role || null;
-          }
-        } else {
-          console.warn('⚠️ Auto-create failed');
-        }
-      }
-      
-      return null;
-    }
+    await setDoc(userDocRef, {
+      uid: userId,
+      updatedAt: serverTimestamp(),
+      ...userData
+    }, { merge: true });
     
-    const userData = userDoc.data();
-    return userData.role || null;
+    console.log('✅ User document created/updated:', userId);
+    return true;
     
   } catch (error) {
-    console.error('❌ Error getting user role:', error);
-    return null;
+    console.error('❌ Error creating/updating user:', error);
+    return false;
   }
 }
 
@@ -265,36 +292,6 @@ export async function getCurrentUserWithRole() {
   };
 }
 
-/**
- * Manually create or update user document
- * @param {string} userId - User ID
- * @param {object} userData - User data
- * @returns {Promise<boolean>}
- */
-export async function createOrUpdateUser(userId, userData) {
-  try {
-    if (!userId) {
-      console.error('❌ No userId provided');
-      return false;
-    }
-    
-    const userDocRef = doc(db, COLLECTIONS.USERS, userId);
-    
-    await setDoc(userDocRef, {
-      uid: userId,
-      updatedAt: serverTimestamp(),
-      ...userData
-    }, { merge: true });
-    
-    console.log('✅ User document created/updated:', userId);
-    return true;
-    
-  } catch (error) {
-    console.error('❌ Error creating/updating user:', error);
-    return false;
-  }
-}
-
 // ========================================
 // HELPER FUNCTIONS
 // ========================================
@@ -327,7 +324,49 @@ export function getFirebaseInfo() {
 }
 
 // ========================================
-// EXPORTS
+// GLOBAL ERROR HANDLER
+// ========================================
+window.addEventListener('error', (event) => {
+  console.error('🚨 Global error:', event.error);
+  
+  // Log to Firestore if user is authenticated
+  if (auth.currentUser && db) {
+    try {
+      addDoc(collection(db, COLLECTIONS.LOGS), {
+        type: 'error',
+        message: event.error?.message || 'Unknown error',
+        stack: event.error?.stack,
+        userId: auth.currentUser.uid,
+        timestamp: serverTimestamp(),
+        url: window.location.href
+      }).catch(e => console.error('Failed to log error:', e));
+    } catch (e) {
+      console.error('Failed to log error:', e);
+    }
+  }
+});
+
+// Handle unhandled promise rejections
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('🚨 Unhandled promise rejection:', event.reason);
+  
+  if (auth.currentUser && db) {
+    try {
+      addDoc(collection(db, COLLECTIONS.LOGS), {
+        type: 'unhandled-rejection',
+        message: event.reason?.message || 'Unknown rejection',
+        userId: auth.currentUser.uid,
+        timestamp: serverTimestamp(),
+        url: window.location.href
+      }).catch(e => console.error('Failed to log rejection:', e));
+    } catch (e) {
+      console.error('Failed to log rejection:', e);
+    }
+  }
+});
+
+// ========================================
+// EXPORTS (SINGLE EXPORT STATEMENT)
 // ========================================
 export { 
   app, 
@@ -336,9 +375,7 @@ export {
   firebaseConfig,
   isDevelopment,
   COLLECTIONS,
-  ROLES,
-  autoCreateUserDocument,
-  createOrUpdateUser
+  ROLES
 };
 
 // ========================================
@@ -366,4 +403,5 @@ console.log('Firestore:', db ? '✅' : '❌');
 console.log('Collections:', Object.keys(COLLECTIONS).join(', '));
 console.log('Roles:', Object.keys(ROLES).join(', '));
 console.log('Auto-Create: ✅ Enabled');
+console.log('Error Logging: ✅ Enabled');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
