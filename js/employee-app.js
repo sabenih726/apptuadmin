@@ -20,7 +20,10 @@ import {
   limit,
   onSnapshot,
   getDocs,
-  Timestamp
+  Timestamp,
+  doc,
+  getDoc,
+  setDoc
 } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
 
 // ✅ Import dari firebase-config.js
@@ -46,7 +49,7 @@ console.log('✅ Firebase verified in employee-app.js');
 // ========================================
 // CONFIG
 // ========================================
-const USE_ANONYMOUS_AUTH = false; // ✅ Changed from true to false
+const USE_ANONYMOUS_AUTH = false;
 const COLLECTION_NAME = getCollectionPath();
 
 // ========================================
@@ -102,6 +105,82 @@ function formatTime(date) {
 }
 
 // ========================================
+// DEBUG & AUTO-CREATE USER DOCUMENT
+// ========================================
+async function ensureUserDocument() {
+  const user = auth.currentUser;
+  
+  if (!user) {
+    console.log('⚠️ No user logged in');
+    return false;
+  }
+  
+  console.log('🔍 Checking user document for:', user.uid);
+  console.log('📧 User Email:', user.email);
+  
+  try {
+    // Check if user document exists
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      console.log('✅ User document exists:', userData);
+      console.log('👤 Role:', userData.role);
+      console.log('✓ Active:', userData.active);
+      return true;
+    } else {
+      console.log('⚠️ User document NOT FOUND. Auto-creating...');
+      
+      // Auto-create user document
+      const newUserData = {
+        uid: user.uid,
+        email: user.email || 'unknown',
+        name: user.displayName || user.email?.split('@')[0] || 'User',
+        role: 'employee',
+        active: true,
+        createdAt: serverTimestamp(),
+        autoCreated: true,
+        createdFrom: 'employee-app'
+      };
+      
+      await setDoc(userDocRef, newUserData);
+      
+      console.log('✅ User document auto-created successfully!');
+      console.log('📄 Created data:', newUserData);
+      
+      // Wait a bit for Firestore to sync
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return true;
+    }
+    
+  } catch (error) {
+    console.error('❌ Error ensuring user document:', error);
+    
+    if (error.code === 'permission-denied') {
+      console.error('🔒 Permission denied! Check Firestore Rules!');
+      updateStatus('⚠️ Permission denied. Contact admin.', true);
+      
+      // Show detailed error
+      alert(
+        '❌ Permission Denied!\n\n' +
+        'Kemungkinan masalah:\n' +
+        '1. Firestore Rules belum di-deploy\n' +
+        '2. User tidak punya akses create document\n\n' +
+        'Solusi:\n' +
+        '1. Deploy rules: firebase deploy --only firestore:rules\n' +
+        '2. Contact admin untuk aktivasi akun'
+      );
+    } else {
+      updateStatus('⚠️ Error: ' + error.message, true);
+    }
+    
+    return false;
+  }
+}
+
+// ========================================
 // AUTHENTICATION
 // ========================================
 async function initAuth() {
@@ -110,10 +189,40 @@ async function initAuth() {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
+      
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('👤 USER AUTHENTICATED');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('UID:', user.uid);
+      console.log('Email:', user.email);
+      console.log('Display Name:', user.displayName);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
+      updateStatus('Memeriksa user document...');
+      
+      // ✅ Ensure user document exists
+      const userReady = await ensureUserDocument();
+      
+      if (!userReady) {
+        updateStatus('❌ Gagal setup user document. Silakan refresh halaman.', true);
+        console.error('❌ User document setup failed!');
+        
+        // Show retry button
+        setTimeout(() => {
+          if (confirm('User setup gagal. Retry?')) {
+            location.reload();
+          }
+        }, 2000);
+        
+        return;
+      }
+      
+      console.log('✅ User ready for attendance');
+      
       const displayName = user.email || user.displayName || `User-${user.uid.slice(-6)}`;
       if (DOM.userStatus) DOM.userStatus.textContent = displayName;
       
-      // ✅ Always show logout button
+      // Always show logout button
       if (DOM.logoutBtn) {
         DOM.logoutBtn.classList.remove('hidden');
       }
@@ -121,11 +230,12 @@ async function initAuth() {
       if (DOM.startBtn) DOM.startBtn.disabled = false;
       updateStatus('Sistem siap digunakan');
       
+      // Load attendance data
       await checkLastAttendance(user.uid);
       loadUserHistory(user.uid);
       
     } else {
-      // ✅ Redirect to login if not authenticated
+      // Redirect to login if not authenticated
       console.log('❌ User not logged in. Redirecting to login...');
       updateStatus('Redirecting to login...', false);
       
@@ -144,6 +254,8 @@ async function checkLastAttendance(userId) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    console.log('🔍 Checking last attendance for today...');
+    
     const q = query(
       collection(db, COLLECTION_NAME),
       where('userId', '==', userId),
@@ -156,21 +268,76 @@ async function checkLastAttendance(userId) {
     
     if (!snapshot.empty) {
       const lastRecord = snapshot.docs[0].data();
+      console.log('✅ Found last attendance:', lastRecord.type, 'at', lastRecord.timestamp?.toDate());
+      
       if (lastRecord.type === 'masuk') {
         attendanceType = 'pulang';
         if (DOM.startBtn) {
           DOM.startBtn.textContent = 'Mulai Absen Pulang';
           DOM.startBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
         }
+        console.log('📌 Set attendance type to: PULANG');
+      } else {
+        console.log('📌 Set attendance type to: MASUK');
       }
+    } else {
+      console.log('ℹ️ No attendance record today');
     }
+    
   } catch (error) {
-    console.error('Check attendance error:', error);
-    if (error.code === 'permission-denied') {
-      updateStatus('⚠️ Error: Permission denied. Cek Firestore Rules!', true);
+    console.error('❌ Check attendance error:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    
+    // ✅ Better error handling
+    if (error.code === 'failed-precondition') {
+      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.error('❌ MISSING COMPOSITE INDEX!');
+      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.error('Collection:', COLLECTION_NAME);
+      console.error('Fields needed: userId (ASC), timestamp (DESC)');
+      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
+      updateStatus('⚠️ Setting up database index. Please wait...', false);
+      
+      // Extract auto-create link from error
+      if (error.message.includes('https://')) {
+        const urlMatch = error.message.match(/https:\/\/[^\s]+/);
+        if (urlMatch) {
+          console.log('📝 Auto-create index here:');
+          console.log(urlMatch[0]);
+          
+          setTimeout(() => {
+            if (confirm('Database index belum ada.\n\nBuka link auto-create di console?\n(Tekan F12 untuk lihat console)')) {
+              window.open(urlMatch[0], '_blank');
+            }
+          }, 1000);
+        }
+      }
+      
+    } else if (error.code === 'permission-denied') {
+      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.error('❌ PERMISSION DENIED!');
+      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.error('Collection:', COLLECTION_NAME);
+      console.error('User ID:', userId);
+      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
+      updateStatus('⚠️ Permission denied. Check Firestore Rules!', true);
+      
       setTimeout(() => {
-        alert('Firestore Permission Denied!\n\nPastikan Firestore Rules sudah di-deploy:\n\nfirebase deploy --only firestore:rules');
-      }, 1000);
+        alert(
+          '❌ Firestore Permission Denied!\n\n' +
+          'Solusi:\n' +
+          '1. Deploy Firestore Rules:\n' +
+          '   firebase deploy --only firestore:rules\n\n' +
+          '2. Pastikan rules membolehkan read untuk collection "' + COLLECTION_NAME + '"\n\n' +
+          '3. Refresh halaman setelah deploy'
+        );
+      }, 500);
+      
+    } else {
+      updateStatus('⚠️ Error: ' + error.message, true);
     }
   }
 }
@@ -183,6 +350,8 @@ function loadUserHistory(userId) {
   today.setHours(0, 0, 0, 0);
   
   try {
+    console.log('📊 Loading attendance history...');
+    
     const q = query(
       collection(db, COLLECTION_NAME),
       where('userId', '==', userId),
@@ -196,8 +365,11 @@ function loadUserHistory(userId) {
         
         if (snapshot.empty) {
           DOM.historyContainer.innerHTML = '<p class="text-gray-400">Belum ada riwayat hari ini.</p>';
+          console.log('ℹ️ No history records today');
           return;
         }
+        
+        console.log(`✅ Loaded ${snapshot.docs.length} history records`);
         
         const history = snapshot.docs.map(doc => {
           const data = doc.data();
@@ -218,7 +390,7 @@ function loadUserHistory(userId) {
         DOM.historyContainer.innerHTML = history.join('');
       },
       (error) => {
-        console.error('History error:', error);
+        console.error('❌ History error:', error);
         if (DOM.historyContainer) {
           DOM.historyContainer.innerHTML = '<p class="text-red-400">Error: ' + error.message + '</p>';
         }
@@ -226,7 +398,7 @@ function loadUserHistory(userId) {
     );
     
   } catch (error) {
-    console.error('Load history error:', error);
+    console.error('❌ Load history error:', error);
   }
 }
 
@@ -254,10 +426,11 @@ async function getLocation() {
         
         if (DOM.locationMessage) DOM.locationMessage.textContent = `📍 ${locName}`;
         updateStatus('Lokasi berhasil didapat');
+        console.log('✅ Location acquired:', locName);
         resolve(locName);
       },
       (error) => {
-        console.warn('Location error:', error);
+        console.warn('⚠️ Location error:', error.message);
         updateStatus('Lanjut tanpa lokasi');
         attendanceData.locationName = 'Location unavailable';
         if (DOM.locationMessage) DOM.locationMessage.textContent = '📍 Lokasi tidak tersedia';
@@ -291,11 +464,11 @@ async function startCamera() {
     
     for (const constraint of constraints) {
       try {
-        console.log('Trying camera with:', constraint);
+        console.log('📷 Trying camera with:', constraint);
         stream = await navigator.mediaDevices.getUserMedia(constraint);
         break;
       } catch (err) {
-        console.warn('Camera constraint failed:', constraint, err);
+        console.warn('⚠️ Camera constraint failed:', constraint, err.message);
         lastError = err;
       }
     }
@@ -315,9 +488,10 @@ async function startCamera() {
     }
     
     updateStatus('Kamera aktif - Ambil foto Anda');
+    console.log('✅ Camera started successfully');
     
   } catch (error) {
-    console.error('Camera error:', error);
+    console.error('❌ Camera error:', error);
     
     let errorMsg = 'Gagal mengakses kamera';
     if (error.name === 'NotFoundError') {
@@ -365,8 +539,9 @@ function capturePhoto() {
     DOM.submitBtn.classList.remove('hidden');
     
     updateStatus('Foto berhasil diambil - Kirim absensi?');
+    console.log('✅ Photo captured successfully');
   } catch (error) {
-    console.error('Capture error:', error);
+    console.error('❌ Capture error:', error);
     updateStatus('Gagal mengambil foto', true);
   }
 }
@@ -388,6 +563,15 @@ async function submitAttendance() {
   DOM.submitBtn.disabled = true;
   updateStatus('Mengirim absensi...');
   
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('📤 SUBMITTING ATTENDANCE');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('User ID:', currentUser.uid);
+  console.log('Type:', attendanceType);
+  console.log('Location:', attendanceData.locationName);
+  console.log('Collection:', COLLECTION_NAME);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
   try {
     const attendanceRecord = {
       userId: currentUser.uid,
@@ -408,10 +592,18 @@ async function submitAttendance() {
     };
     
     const docRef = await addDoc(collection(db, COLLECTION_NAME), attendanceRecord);
-    console.log('✅ Attendance saved:', docRef.id);
+    
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('✅ ATTENDANCE SAVED SUCCESSFULLY!');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('Document ID:', docRef.id);
+    console.log('Type:', attendanceType);
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
     updateStatus(`✅ Absensi ${attendanceType} berhasil disimpan!`);
     
+    // Change button for next attendance
     if (attendanceType === 'masuk') {
       attendanceType = 'pulang';
       DOM.startBtn.textContent = 'Mulai Absen Pulang';
@@ -425,8 +617,31 @@ async function submitAttendance() {
     setTimeout(resetUI, 2000);
     
   } catch (error) {
-    console.error('❌ Submit error:', error);
-    updateStatus('Gagal mengirim: ' + error.message, true);
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('❌ SUBMIT ERROR!');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    console.error('Full error:', error);
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    if (error.code === 'permission-denied') {
+      updateStatus('❌ Permission denied! Check Firestore Rules!', true);
+      
+      alert(
+        '❌ Permission Denied!\n\n' +
+        'Kemungkinan masalah:\n' +
+        '1. Firestore Rules belum allow CREATE\n' +
+        '2. User document belum ada\n' +
+        '3. Rules terlalu ketat\n\n' +
+        'Solusi:\n' +
+        '1. Deploy rules: firebase deploy --only firestore:rules\n' +
+        '2. Refresh halaman\n' +
+        '3. Contact admin jika masih error'
+      );
+    } else {
+      updateStatus('❌ Gagal mengirim: ' + error.message, true);
+    }
   } finally {
     DOM.submitBtn.disabled = false;
   }
@@ -462,17 +677,24 @@ function resetUI() {
   
   if (DOM.locationMessage) DOM.locationMessage.textContent = '';
   updateStatus('Sistem siap');
+  
+  console.log('🔄 UI reset completed');
 }
 
 // ========================================
 // LOGOUT
 // ========================================
 async function logout() {
+  if (!confirm('Logout dari sistem?')) return;
+  
   try {
+    console.log('🔓 Logging out...');
     await signOut(auth);
+    console.log('✅ Logged out successfully');
     window.location.href = '/login.html';
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error('❌ Logout error:', error);
+    alert('Logout failed: ' + error.message);
   }
 }
 
@@ -480,6 +702,8 @@ async function logout() {
 // EVENT LISTENERS
 // ========================================
 DOM.startBtn?.addEventListener('click', async () => {
+  console.log('🚀 Starting attendance process...');
+  
   DOM.startBtn.disabled = true;
   DOM.startBtn.classList.add('hidden');
   DOM.resetBtn.classList.remove('hidden');
@@ -498,11 +722,13 @@ DOM.resetBtn?.addEventListener('click', resetUI);
 DOM.logoutBtn?.addEventListener('click', logout);
 
 window.addEventListener('online', () => {
+  console.log('🌐 Online');
   DOM.offlineStatus?.classList.add('hidden');
   updateStatus('Online - Sistem siap');
 });
 
 window.addEventListener('offline', () => {
+  console.log('📡 Offline');
   DOM.offlineStatus?.classList.remove('hidden');
   updateStatus('Offline - Data akan disimpan lokal');
 });
@@ -510,7 +736,14 @@ window.addEventListener('offline', () => {
 // ========================================
 // INITIALIZE APP
 // ========================================
-console.log('🚀 Starting Employee App...');
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+console.log('🚀 EMPLOYEE APP STARTING...');
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+console.log('Collection:', COLLECTION_NAME);
+console.log('Auth initialized:', !!auth);
+console.log('Firestore initialized:', !!db);
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initAuth);
 } else {
