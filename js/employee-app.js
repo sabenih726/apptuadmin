@@ -1,5 +1,5 @@
 // js/employee-app.js
-import { app, auth, db, getCollectionPath } from '../firebase-config.js';
+import { app, auth, db, getCollectionPath } from '/firebase-config.js';
 import { 
   signInAnonymously, 
   onAuthStateChanged 
