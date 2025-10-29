@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========================================
+    // HELPER FUNCTIONS
+    // ========================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function userExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+    
+    function getUserRole(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             userExists(request.auth.uid) &&
+             getUserRole(request.auth.uid) == 'admin';
+    }
+    
+    // ========================================
+    // ATTENDANCE COLLECTION
+    // ========================================
+    match /attendance/{document} {
+      // Semua user authenticated bisa READ
+      allow read: if isAuthenticated();
+      
+      // User bisa CREATE attendance untuk dirinya sendiri
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.timestamp != null;
+      
+      // Admin bisa update/delete
+      allow update, delete: if isAdmin();
+    }
+    
+    // ========================================
+    // KARYAWAN/EMPLOYEES COLLECTION
+    // ========================================
+    match /karyawan/{document} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // ========================================
+    // USERS COLLECTION
+    // ========================================
+    match /users/{userId} {
+      // User bisa baca dokumen sendiri atau admin bisa baca semua
+      allow read: if isAuthenticated() && 
+                     (request.auth.uid == userId || isAdmin());
+      
+      // User bisa CREATE dokumen sendiri (untuk auto-create)
+      allow create: if isAuthenticated() && 
+                       request.auth.uid == userId;
+      
+      // User bisa UPDATE dokumen sendiri (tidak boleh ubah role)
+      allow update: if isAuthenticated() && 
+                       request.auth.uid == userId &&
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+      
+      // Admin bisa create/update/delete semua user
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // ========================================
+    // SETTINGS COLLECTION
+    // ========================================
+    match /settings/{document} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // ========================================
+    // LOGS COLLECTION
+    // ========================================
+    match /logs/{document} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+  }
+}
