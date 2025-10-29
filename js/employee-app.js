@@ -1,12 +1,10 @@
 // js/employee-app.js
 console.log('📱 Loading employee-app.js...');
 
-// Import Firebase modules
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
 import { 
   getAuth,
   signInAnonymously,
-  signInWithEmailAndPassword,
   onAuthStateChanged,
   signOut
 } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
@@ -37,8 +35,8 @@ console.log('✅ Firebase initialized');
 // ========================================
 // CONFIG
 // ========================================
-const COLLECTION_NAME = 'attendance'; // Nama collection untuk absensi
-const USE_ANONYMOUS_AUTH = true; // Set false jika mau pakai email/password
+const COLLECTION_NAME = 'attendance';
+const USE_ANONYMOUS_AUTH = true;
 
 // ========================================
 // DOM ELEMENTS
@@ -78,8 +76,10 @@ let attendanceData = {
 // ========================================
 function updateStatus(msg, isError = false) {
   console.log('Status:', msg);
-  DOM.statusMessage.textContent = msg;
-  DOM.statusMessage.className = isError ? 'text-red-400' : 'text-gray-300';
+  if (DOM.statusMessage) {
+    DOM.statusMessage.textContent = msg;
+    DOM.statusMessage.className = isError ? 'text-red-400' : 'text-gray-300';
+  }
 }
 
 function formatTime(date) {
@@ -100,43 +100,36 @@ async function initAuth() {
     if (user) {
       currentUser = user;
       const displayName = user.email || `User-${user.uid.slice(-6)}`;
-      DOM.userStatus.textContent = displayName;
+      if (DOM.userStatus) DOM.userStatus.textContent = displayName;
       
-      if (!USE_ANONYMOUS_AUTH) {
+      if (!USE_ANONYMOUS_AUTH && DOM.logoutBtn) {
         DOM.logoutBtn.classList.remove('hidden');
       }
       
-      DOM.startBtn.disabled = false;
+      if (DOM.startBtn) DOM.startBtn.disabled = false;
       updateStatus('Sistem siap digunakan');
       
-      // Check last attendance
       await checkLastAttendance(user.uid);
-      
-      // Load history
       loadUserHistory(user.uid);
       
     } else {
-      // Not logged in
       if (USE_ANONYMOUS_AUTH) {
-        // Auto login with anonymous
         try {
           updateStatus('Login otomatis...');
           const result = await signInAnonymously(auth);
-          console.log('✅ Anonymous login success:', result.user.uid);
+          console.log('✅ Anonymous login:', result.user.uid);
         } catch (error) {
-          console.error('❌ Anonymous auth error:', error);
-          updateStatus('Gagal login: ' + error.message, true);
+          console.error('❌ Auth error:', error);
+          updateStatus('Error: ' + error.message, true);
           
-          // Fallback: redirect to login page
           if (error.code === 'auth/admin-restricted-operation') {
-            updateStatus('Anonymous auth tidak aktif. Redirecting...', true);
+            updateStatus('Anonymous auth tidak diaktifkan di Firebase Console', true);
             setTimeout(() => {
-              window.location.href = '/login.html';
-            }, 2000);
+              alert('PENTING: Enable Anonymous Authentication di Firebase Console → Authentication → Sign-in method');
+            }, 1000);
           }
         }
       } else {
-        // Redirect to login page
         window.location.href = '/login.html';
       }
     }
@@ -165,15 +158,17 @@ async function checkLastAttendance(userId) {
       const lastRecord = snapshot.docs[0].data();
       if (lastRecord.type === 'masuk') {
         attendanceType = 'pulang';
-        DOM.startBtn.textContent = 'Mulai Absen Pulang';
-        DOM.startBtn.className = 'btn-primary w-full bg-gradient-to-r from-yellow-500 to-orange-500';
-      } else {
-        attendanceType = 'masuk';
-        DOM.startBtn.textContent = 'Mulai Absen Masuk';
+        if (DOM.startBtn) {
+          DOM.startBtn.textContent = 'Mulai Absen Pulang';
+          DOM.startBtn.className = 'btn-primary w-full bg-gradient-to-r from-yellow-500 to-orange-500';
+        }
       }
     }
   } catch (error) {
     console.error('Check attendance error:', error);
+    if (error.code === 'permission-denied') {
+      updateStatus('Error: Tidak ada permission. Cek Firestore Rules!', true);
+    }
   }
 }
 
@@ -192,8 +187,10 @@ function loadUserHistory(userId) {
       orderBy('timestamp', 'desc')
     );
     
-    const unsubscribe = onSnapshot(q, 
+    onSnapshot(q, 
       (snapshot) => {
+        if (!DOM.historyContainer) return;
+        
         if (snapshot.empty) {
           DOM.historyContainer.innerHTML = '<p class="text-gray-400">Belum ada riwayat hari ini.</p>';
           return;
@@ -219,13 +216,14 @@ function loadUserHistory(userId) {
       },
       (error) => {
         console.error('History error:', error);
-        DOM.historyContainer.innerHTML = '<p class="text-red-400">Error loading history</p>';
+        if (DOM.historyContainer) {
+          DOM.historyContainer.innerHTML = '<p class="text-red-400">Error: ' + error.message + '</p>';
+        }
       }
     );
     
   } catch (error) {
     console.error('Load history error:', error);
-    DOM.historyContainer.innerHTML = '<p class="text-red-400">Error: ' + error.message + '</p>';
   }
 }
 
@@ -242,12 +240,6 @@ async function getLocation() {
     
     updateStatus('Mendapatkan lokasi...');
     
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
-    };
-    
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
@@ -257,7 +249,7 @@ async function getLocation() {
         attendanceData.latitude = latitude;
         attendanceData.longitude = longitude;
         
-        DOM.locationMessage.textContent = `📍 ${locName}`;
+        if (DOM.locationMessage) DOM.locationMessage.textContent = `📍 ${locName}`;
         updateStatus('Lokasi berhasil didapat');
         resolve(locName);
       },
@@ -265,46 +257,79 @@ async function getLocation() {
         console.warn('Location error:', error);
         updateStatus('Lanjut tanpa lokasi');
         attendanceData.locationName = 'Location unavailable';
-        DOM.locationMessage.textContent = '📍 Lokasi tidak tersedia';
+        if (DOM.locationMessage) DOM.locationMessage.textContent = '📍 Lokasi tidak tersedia';
         resolve('Unknown');
       },
-      options
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   });
 }
 
 // ========================================
-// CAMERA
+// CAMERA (WITH FALLBACK)
 // ========================================
 async function startCamera() {
   try {
     updateStatus('Mengaktifkan kamera...');
     
-    // Stop any existing stream
+    // Stop existing stream
     if (streamInstance) {
       streamInstance.getTracks().forEach(track => track.stop());
     }
     
-    // Request camera access
-    streamInstance = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: 'user',
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }
-    });
+    // Try multiple camera constraints with fallback
+    const constraints = [
+      { video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } },
+      { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } },
+      { video: { width: { ideal: 1280 }, height: { ideal: 720 } } },
+      { video: true }
+    ];
     
-    DOM.video.srcObject = streamInstance;
-    DOM.video.style.display = 'block';
-    DOM.videoPlaceholder.style.display = 'none';
+    let stream = null;
+    let lastError = null;
+    
+    for (const constraint of constraints) {
+      try {
+        console.log('Trying camera with:', constraint);
+        stream = await navigator.mediaDevices.getUserMedia(constraint);
+        break;
+      } catch (err) {
+        console.warn('Camera constraint failed:', constraint, err);
+        lastError = err;
+      }
+    }
+    
+    if (!stream) {
+      throw lastError || new Error('No camera available');
+    }
+    
+    streamInstance = stream;
+    
+    if (DOM.video) {
+      DOM.video.srcObject = streamInstance;
+      DOM.video.style.display = 'block';
+    }
+    if (DOM.videoPlaceholder) {
+      DOM.videoPlaceholder.style.display = 'none';
+    }
     
     updateStatus('Kamera aktif - Ambil foto Anda');
     
   } catch (error) {
     console.error('Camera error:', error);
-    updateStatus('Gagal mengakses kamera: ' + error.message, true);
     
-    // Reset UI if camera fails
+    let errorMsg = 'Gagal mengakses kamera';
+    if (error.name === 'NotFoundError') {
+      errorMsg = 'Kamera tidak ditemukan. Gunakan device dengan kamera.';
+    } else if (error.name === 'NotAllowedError') {
+      errorMsg = 'Akses kamera ditolak. Izinkan akses kamera di browser.';
+    } else if (error.name === 'NotReadableError') {
+      errorMsg = 'Kamera sedang digunakan aplikasi lain.';
+    }
+    
+    updateStatus(errorMsg, true);
+    alert(errorMsg + '\n\nTips:\n- Pastikan device memiliki kamera\n- Berikan izin akses kamera\n- Tutup aplikasi lain yang menggunakan kamera');
+    
     resetUI();
   }
 }
@@ -315,34 +340,38 @@ function capturePhoto() {
     return;
   }
   
-  // Draw to hidden canvas for data
-  const ctx = DOM.canvasHidden.getContext('2d');
-  DOM.canvasHidden.width = DOM.video.videoWidth;
-  DOM.canvasHidden.height = DOM.video.videoHeight;
-  ctx.drawImage(DOM.video, 0, 0);
-  
-  // Store photo data
-  attendanceData.photoBase64 = DOM.canvasHidden.toDataURL('image/jpeg', 0.7);
-  
-  // Draw to visible canvas for display
-  const ctxCapture = DOM.canvasCapture.getContext('2d');
-  DOM.canvasCapture.width = DOM.video.videoWidth;
-  DOM.canvasCapture.height = DOM.video.videoHeight;
-  ctxCapture.drawImage(DOM.video, 0, 0);
-  DOM.canvasCapture.style.display = 'block';
-  
-  // Hide video and stop stream
-  DOM.video.style.display = 'none';
-  if (streamInstance) {
-    streamInstance.getTracks().forEach(track => track.stop());
-    streamInstance = null;
+  try {
+    // Hidden canvas for data
+    const ctx = DOM.canvasHidden.getContext('2d');
+    DOM.canvasHidden.width = DOM.video.videoWidth || 640;
+    DOM.canvasHidden.height = DOM.video.videoHeight || 480;
+    ctx.drawImage(DOM.video, 0, 0);
+    
+    attendanceData.photoBase64 = DOM.canvasHidden.toDataURL('image/jpeg', 0.7);
+    
+    // Display canvas
+    const ctxCapture = DOM.canvasCapture.getContext('2d');
+    DOM.canvasCapture.width = DOM.video.videoWidth || 640;
+    DOM.canvasCapture.height = DOM.video.videoHeight || 480;
+    ctxCapture.drawImage(DOM.video, 0, 0);
+    DOM.canvasCapture.style.display = 'block';
+    
+    // Hide video
+    DOM.video.style.display = 'none';
+    if (streamInstance) {
+      streamInstance.getTracks().forEach(track => track.stop());
+      streamInstance = null;
+    }
+    
+    // Update UI
+    DOM.captureBtn.classList.add('hidden');
+    DOM.submitBtn.classList.remove('hidden');
+    
+    updateStatus('Foto berhasil diambil - Kirim absensi?');
+  } catch (error) {
+    console.error('Capture error:', error);
+    updateStatus('Gagal mengambil foto', true);
   }
-  
-  // Update buttons
-  DOM.captureBtn.classList.add('hidden');
-  DOM.submitBtn.classList.remove('hidden');
-  
-  updateStatus('Foto berhasil diambil - Kirim absensi?');
 }
 
 // ========================================
@@ -386,7 +415,7 @@ async function submitAttendance() {
     
     updateStatus(`✅ Absensi ${attendanceType} berhasil disimpan!`);
     
-    // Update button for next attendance
+    // Update for next attendance
     if (attendanceType === 'masuk') {
       attendanceType = 'pulang';
       DOM.startBtn.textContent = 'Mulai Absen Pulang';
@@ -397,7 +426,6 @@ async function submitAttendance() {
       DOM.startBtn.className = 'btn-primary w-full';
     }
     
-    // Reset after 2 seconds
     setTimeout(resetUI, 2000);
     
   } catch (error) {
@@ -412,13 +440,11 @@ async function submitAttendance() {
 // RESET UI
 // ========================================
 function resetUI() {
-  // Stop camera if still running
   if (streamInstance) {
     streamInstance.getTracks().forEach(track => track.stop());
     streamInstance = null;
   }
   
-  // Clear data
   attendanceData = {
     photoBase64: null,
     locationName: null,
@@ -426,19 +452,19 @@ function resetUI() {
     longitude: null
   };
   
-  // Reset display
-  DOM.video.style.display = 'none';
-  DOM.canvasCapture.style.display = 'none';
-  DOM.videoPlaceholder.style.display = 'flex';
+  if (DOM.video) DOM.video.style.display = 'none';
+  if (DOM.canvasCapture) DOM.canvasCapture.style.display = 'none';
+  if (DOM.videoPlaceholder) DOM.videoPlaceholder.style.display = 'flex';
   
-  // Reset buttons
-  DOM.startBtn.classList.remove('hidden');
-  DOM.startBtn.disabled = false;
-  DOM.captureBtn.classList.add('hidden');
-  DOM.submitBtn.classList.add('hidden');
-  DOM.resetBtn.classList.add('hidden');
+  if (DOM.startBtn) {
+    DOM.startBtn.classList.remove('hidden');
+    DOM.startBtn.disabled = false;
+  }
+  if (DOM.captureBtn) DOM.captureBtn.classList.add('hidden');
+  if (DOM.submitBtn) DOM.submitBtn.classList.add('hidden');
+  if (DOM.resetBtn) DOM.resetBtn.classList.add('hidden');
   
-  DOM.locationMessage.textContent = '';
+  if (DOM.locationMessage) DOM.locationMessage.textContent = '';
   updateStatus('Sistem siap');
 }
 
@@ -475,7 +501,6 @@ DOM.submitBtn?.addEventListener('click', submitAttendance);
 DOM.resetBtn?.addEventListener('click', resetUI);
 DOM.logoutBtn?.addEventListener('click', logout);
 
-// Network status
 window.addEventListener('online', () => {
   DOM.offlineStatus?.classList.add('hidden');
   updateStatus('Online - Sistem siap');
@@ -489,7 +514,9 @@ window.addEventListener('offline', () => {
 // ========================================
 // INITIALIZE APP
 // ========================================
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 Starting Employee App...');
+console.log('🚀 Starting Employee App...');
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAuth);
+} else {
   initAuth();
-});
+}
