@@ -10,12 +10,43 @@
       {
         "source": "**/*.js",
         "headers": [
-          { "key": "Content-Type", "value": "text/javascript; charset=UTF-8" }
+          { 
+            "key": "Content-Type", 
+            "value": "application/javascript; charset=UTF-8" 
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "**/*.css",
+        "headers": [
+          { 
+            "key": "Content-Type", 
+            "value": "text/css; charset=UTF-8" 
+          }
         ]
       }
     ],
     "rewrites": [
-      { "source": "**", "destination": "/index.html" }
+      {
+        "source": "/",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/login",
+        "destination": "/login.html"
+      },
+      {
+        "source": "/employee",
+        "destination": "/employee.html"
+      },
+      {
+        "source": "/admin",
+        "destination": "/admin.html"
+      }
     ]
   }
 }
