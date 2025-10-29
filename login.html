@@ -114,7 +114,7 @@
       
       <a href="employee.html" class="block w-full bg-gray-700 text-white text-center font-medium py-3 rounded-lg hover:bg-gray-600 transition">
         <i class="fas fa-user-secret mr-2"></i>
-        Masuk sebagai Guest (Anonymous)
+        Masuk sebagai Employee
       </a>
     </div>
 
@@ -128,11 +128,7 @@
   </div>
 
   <script type="module">
-    // ✅ Import dari firebase-config.js
-    import { 
-      auth, 
-      getCurrentUser 
-    } from '/firebase-config.js';
+    import { auth, getUserRole } from '/firebase-config.js';
     
     import { 
       signInWithEmailAndPassword,
@@ -140,19 +136,105 @@
       signInWithPopup,
       setPersistence,
       browserLocalPersistence,
-      browserSessionPersistence
+      browserSessionPersistence,
+      signOut,
+      onAuthStateChanged
     } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
 
     console.log('🔐 Initializing Login...');
     
     const googleProvider = new GoogleAuthProvider();
+    
+    // ✅ FIX: Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceLogout = urlParams.get('logout') === 'true';
+    const redirectAfterLogin = urlParams.get('redirect') || null;
+    
+    console.log('URL Params:', { forceLogout, redirectAfterLogin });
+    
+    let isAuthChecked = false;
+    let isProcessingAuth = false;
 
-    // Check if already logged in
-    const currentUser = await getCurrentUser();
-    if (currentUser) {
-      console.log('✅ User already logged in:', currentUser.email || currentUser.uid);
-      redirectUser(currentUser);
+    // ✅ FIX: Handle force logout first
+    if (forceLogout) {
+      console.log('🔓 Force logout requested...');
+      
+      (async () => {
+        try {
+          await signOut(auth);
+          console.log('✅ Logged out successfully');
+          
+          // Remove logout param from URL
+          const newUrl = new URL(window.location);
+          newUrl.searchParams.delete('logout');
+          window.history.replaceState({}, document.title, newUrl.toString());
+          
+        } catch (error) {
+          console.error('Logout error:', error);
+        }
+      })();
     }
+
+    // ✅ FIX: Check auth state with proper redirect logic
+    onAuthStateChanged(auth, async (user) => {
+      // Prevent multiple checks
+      if (isAuthChecked || isProcessingAuth) {
+        console.log('⏭️ Skipping duplicate auth check');
+        return;
+      }
+      
+      isProcessingAuth = true;
+      
+      if (user && !forceLogout) {
+        console.log('✅ User already logged in:', user.email || user.uid);
+        
+        try {
+          // ✅ Check user role before redirect
+          const role = await getUserRole(user.uid);
+          console.log('👤 User role:', role);
+          
+          // ✅ Respect redirect parameter or use role-based redirect
+          let targetPage = null;
+          
+          if (redirectAfterLogin) {
+            // Use specified redirect
+            if (redirectAfterLogin === 'admin' && role === 'admin') {
+              targetPage = '/admin.html';
+            } else if (redirectAfterLogin === 'employee') {
+              targetPage = '/employee.html';
+            } else if (redirectAfterLogin === 'admin' && role !== 'admin') {
+              // Trying to access admin but not admin role
+              console.warn('⚠️ Non-admin trying to access admin page');
+              showStatus('Access denied. Admin only.', 'error');
+              await signOut(auth);
+              isProcessingAuth = false;
+              return;
+            } else {
+              targetPage = `/${redirectAfterLogin}.html`;
+            }
+          } else {
+            // Default role-based redirect
+            if (role === 'admin') {
+              targetPage = '/admin.html';
+            } else {
+              targetPage = '/employee.html';
+            }
+          }
+          
+          console.log('➡️ Redirecting to:', targetPage);
+          window.location.href = targetPage;
+          
+        } catch (error) {
+          console.error('Error checking role:', error);
+          // Fallback to email-based check
+          redirectUserByEmail(user);
+        }
+      } else {
+        console.log('ℹ️ No user logged in - ready for login');
+        isAuthChecked = true;
+        isProcessingAuth = false;
+      }
+    });
 
     // Form submission
     document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -177,8 +259,34 @@
         
         showStatus('Login berhasil! Mengalihkan...', 'success');
         
+        // ✅ Check role before redirect
+        const role = await getUserRole(userCredential.user.uid);
+        console.log('👤 User role:', role);
+        
         setTimeout(() => {
-          redirectUser(userCredential.user);
+          // ✅ Respect redirect parameter or use role
+          if (redirectAfterLogin) {
+            if (redirectAfterLogin === 'admin') {
+              if (role === 'admin') {
+                window.location.href = '/admin.html';
+              } else {
+                showStatus('Access denied. Admin only.', 'error');
+                signOut(auth);
+                showLoading(false);
+              }
+            } else if (redirectAfterLogin === 'employee') {
+              window.location.href = '/employee.html';
+            } else {
+              window.location.href = `/${redirectAfterLogin}.html`;
+            }
+          } else {
+            // Default role-based redirect
+            if (role === 'admin') {
+              window.location.href = '/admin.html';
+            } else {
+              window.location.href = '/employee.html';
+            }
+          }
         }, 1000);
         
       } catch (error) {
@@ -199,8 +307,18 @@
         
         showStatus('Login berhasil! Mengalihkan...', 'success');
         
+        const role = await getUserRole(result.user.uid);
+        
         setTimeout(() => {
-          redirectUser(result.user);
+          if (redirectAfterLogin === 'admin' && role !== 'admin') {
+            showStatus('Access denied. Admin only.', 'error');
+            signOut(auth);
+            showLoading(false);
+          } else if (role === 'admin') {
+            window.location.href = '/admin.html';
+          } else {
+            window.location.href = '/employee.html';
+          }
         }, 1000);
         
       } catch (error) {
@@ -233,10 +351,17 @@
     });
 
     // Helper Functions
-    function redirectUser(user) {
+    function redirectUserByEmail(user) {
       const email = user.email || '';
       
-      if (email.includes('admin')) {
+      if (redirectAfterLogin === 'admin') {
+        if (email.includes('admin')) {
+          window.location.href = '/admin.html';
+        } else {
+          showStatus('Access denied. Admin only.', 'error');
+          signOut(auth);
+        }
+      } else if (email.includes('admin')) {
         window.location.href = '/admin.html';
       } else {
         window.location.href = '/employee.html';
