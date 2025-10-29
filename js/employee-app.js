@@ -1,38 +1,33 @@
-// js/employee-app.js
-console.log('📱 Loading employee-app.js...');
+// js/admin-app.js
+console.log('📊 Loading admin-app.js...');
 
-// ========================================
-// IMPORT FIREBASE MODULES & CONFIG
-// ========================================
-import { 
-  signInAnonymously,
+import {
   onAuthStateChanged,
   signOut
 } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
 
-import { 
-  collection, 
-  addDoc, 
-  serverTimestamp, 
-  query, 
-  where, 
+import {
+  collection,
+  query,
   orderBy,
   limit,
+  where,
   onSnapshot,
-  getDocs,
-  Timestamp,
   doc,
-  getDoc,
-  setDoc
+  deleteDoc,
+  getDocs,
+  Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
 
-// ✅ Import dari firebase-config.js
+// Import dari firebase-config.js
 import { 
   auth, 
   db, 
   getCollectionPath,
   COLLECTIONS,
-  isFirebaseInitialized 
+  ROLES,
+  isFirebaseInitialized,
+  getUserRole
 } from '/firebase-config.js';
 
 // ========================================
@@ -44,756 +39,607 @@ if (!isFirebaseInitialized()) {
   throw new Error('Firebase not initialized');
 }
 
-console.log('✅ Firebase verified in employee-app.js');
+console.log('✅ Firebase verified in admin-app.js');
 
 // ========================================
 // CONFIG
 // ========================================
-const USE_ANONYMOUS_AUTH = false;
 const COLLECTION_NAME = getCollectionPath();
+const MAX_RECORDS = 1000; // ✅ Increased for export
 
 // ========================================
 // DOM ELEMENTS
 // ========================================
 const DOM = {
-  video: document.getElementById('video'),
-  videoPlaceholder: document.getElementById('video-placeholder'),
-  canvasCapture: document.getElementById('canvas-capture'),
-  canvasHidden: document.getElementById('canvas-hidden'),
-  startBtn: document.getElementById('start-btn'),
-  captureBtn: document.getElementById('capture-btn'),
-  submitBtn: document.getElementById('submit-btn'),
-  resetBtn: document.getElementById('reset-btn'),
+  tbody: document.getElementById('attendance-table-body'),
+  verifPhoto: document.getElementById('verification-photo'),
+  noPhotoMsg: document.getElementById('no-photo-msg'),
+  detailView: document.getElementById('detail-view'),
+  verifStatus: document.getElementById('verif-status'),
+  verifTime: document.getElementById('verif-time'),
+  verifUser: document.getElementById('verif-user'),
+  verifCoords: document.getElementById('verif-coords'),
+  verifMap: document.getElementById('verif-map-link'),
+  totalRecords: document.getElementById('total-records'),
+  totalMasuk: document.getElementById('total-masuk'),
+  totalPulang: document.getElementById('total-pulang'),
+  userInfo: document.getElementById('user-info'),
   logoutBtn: document.getElementById('logout-btn'),
-  statusMessage: document.getElementById('status-message'),
-  locationMessage: document.getElementById('location-message'),
-  userStatus: document.getElementById('user-status'),
-  historyContainer: document.getElementById('history-container'),
-  offlineStatus: document.getElementById('offline-status')
+  refreshBtn: document.getElementById('refresh-btn'),
+  
+  // ✅ New elements for export feature
+  dateFrom: document.getElementById('date-from'),
+  dateTo: document.getElementById('date-to'),
+  filterBtn: document.getElementById('filter-btn'),
+  exportExcelBtn: document.getElementById('export-excel-btn'),
+  resetFilterBtn: document.getElementById('reset-filter-btn'),
+  filterInfo: document.getElementById('filter-info'),
+  filterInfoText: document.getElementById('filter-info-text')
 };
 
 // ========================================
 // STATE
 // ========================================
-let currentUser = null;
-let streamInstance = null;
-let attendanceType = 'masuk';
-let attendanceData = {
-  photoBase64: null,
-  locationName: null,
-  latitude: null,
-  longitude: null
+let allRecords = [];
+let filteredRecords = []; // ✅ For filtered data
+let unsubscribeSnapshot = null;
+let currentUserRole = null;
+let currentFilter = { // ✅ Current filter state
+  dateFrom: null,
+  dateTo: null
 };
 
 // ========================================
-// UTILITY FUNCTIONS
+// INITIALIZE DATE INPUTS
 // ========================================
-function updateStatus(msg, isError = false) {
-  console.log('Status:', msg);
-  if (DOM.statusMessage) {
-    DOM.statusMessage.textContent = msg;
-    DOM.statusMessage.className = isError ? 'text-red-400' : 'text-gray-300';
-  }
-}
-
-function formatTime(date) {
-  return date.toLocaleTimeString('id-ID', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
+function initializeDateInputs() {
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  
+  if (DOM.dateFrom) DOM.dateFrom.value = todayStr;
+  if (DOM.dateTo) DOM.dateTo.value = todayStr;
+  
+  currentFilter.dateFrom = today;
+  currentFilter.dateTo = today;
 }
 
 // ========================================
-// DEBUG & AUTO-CREATE USER DOCUMENT
+// SHOW UNAUTHORIZED PAGE
 // ========================================
-async function ensureUserDocument() {
-  const user = auth.currentUser;
-  
-  if (!user) {
-    console.log('⚠️ No user logged in');
-    return false;
-  }
-  
-  console.log('🔍 Checking user document for:', user.uid);
-  console.log('📧 User Email:', user.email);
-  
-  try {
-    // Check if user document exists
-    const userDocRef = doc(db, 'users', user.uid);
-    const userDoc = await getDoc(userDocRef);
-    
-    if (userDoc.exists()) {
-      const userData = userDoc.data();
-      console.log('✅ User document exists:', userData);
-      console.log('👤 Role:', userData.role);
-      console.log('✓ Active:', userData.active);
-      return true;
-    } else {
-      console.log('⚠️ User document NOT FOUND. Auto-creating...');
-      
-      // Auto-create user document
-      const newUserData = {
-        uid: user.uid,
-        email: user.email || 'unknown',
-        name: user.displayName || user.email?.split('@')[0] || 'User',
-        role: 'employee',
-        active: true,
-        createdAt: serverTimestamp(),
-        autoCreated: true,
-        createdFrom: 'employee-app'
-      };
-      
-      await setDoc(userDocRef, newUserData);
-      
-      console.log('✅ User document auto-created successfully!');
-      console.log('📄 Created data:', newUserData);
-      
-      // Wait a bit for Firestore to sync
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      return true;
-    }
-    
-  } catch (error) {
-    console.error('❌ Error ensuring user document:', error);
-    
-    if (error.code === 'permission-denied') {
-      console.error('🔒 Permission denied! Check Firestore Rules!');
-      updateStatus('⚠️ Permission denied. Contact admin.', true);
-      
-      // Show detailed error
-      alert(
-        '❌ Permission Denied!\n\n' +
-        'Kemungkinan masalah:\n' +
-        '1. Firestore Rules belum di-deploy\n' +
-        '2. User tidak punya akses create document\n\n' +
-        'Solusi:\n' +
-        '1. Deploy rules: firebase deploy --only firestore:rules\n' +
-        '2. Contact admin untuk aktivasi akun'
-      );
-    } else {
-      updateStatus('⚠️ Error: ' + error.message, true);
-    }
-    
-    return false;
+function showUnauthorized() {
+  document.body.innerHTML = `
+    <div class="min-h-screen flex items-center justify-center bg-gray-900 p-4">
+      <div class="text-center max-w-md">
+        <div class="mb-8">
+          <i class="fas fa-shield-alt text-8xl text-red-500 mb-4"></i>
+        </div>
+        <h1 class="text-4xl font-bold text-white mb-4">Access Denied</h1>
+        <p class="text-gray-400 text-lg mb-4">You don't have permission to access this page.</p>
+        <div class="bg-red-900 bg-opacity-20 border border-red-500 rounded-lg p-4 mb-8">
+          <p class="text-red-300 text-sm">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            Only admin users can access the dashboard.
+          </p>
+        </div>
+        <div class="space-y-3">
+          <a href="/login.html" class="block bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition">
+            <i class="fas fa-sign-in-alt mr-2"></i>
+            Go to Login
+          </a>
+          <a href="/employee.html" class="block bg-gray-700 text-white px-8 py-3 rounded-lg hover:bg-gray-600 transition">
+            <i class="fas fa-user mr-2"></i>
+            Employee Page
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ========================================
+// SHOW LOADING PAGE
+// ========================================
+function showLoading() {
+  if (DOM.tbody) {
+    DOM.tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center py-12">
+          <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+          <p class="text-gray-400">Verifying admin access...</p>
+        </td>
+      </tr>
+    `;
   }
 }
 
 // ========================================
-// AUTHENTICATION
+// AUTH WITH ROLE CHECK
 // ========================================
 async function initAuth() {
-  updateStatus('Menginisialisasi...');
+  showLoading();
   
   onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      currentUser = user;
-      
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('👤 USER AUTHENTICATED');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('UID:', user.uid);
-      console.log('Email:', user.email);
-      console.log('Display Name:', user.displayName);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      
-      updateStatus('Memeriksa user document...');
-      
-      // ✅ Ensure user document exists
-      const userReady = await ensureUserDocument();
-      
-      if (!userReady) {
-        updateStatus('❌ Gagal setup user document. Silakan refresh halaman.', true);
-        console.error('❌ User document setup failed!');
-        
-        // Show retry button
-        setTimeout(() => {
-          if (confirm('User setup gagal. Retry?')) {
-            location.reload();
-          }
-        }, 2000);
-        
-        return;
-      }
-      
-      console.log('✅ User ready for attendance');
-      
-      const displayName = user.email || user.displayName || `User-${user.uid.slice(-6)}`;
-      if (DOM.userStatus) DOM.userStatus.textContent = displayName;
-      
-      // Always show logout button
-      if (DOM.logoutBtn) {
-        DOM.logoutBtn.classList.remove('hidden');
-      }
-      
-      if (DOM.startBtn) DOM.startBtn.disabled = false;
-      updateStatus('Sistem siap digunakan');
-      
-      // Load attendance data
-      await checkLastAttendance(user.uid);
-      loadUserHistory(user.uid);
-      
-    } else {
-      // Redirect to login if not authenticated
-      console.log('❌ User not logged in. Redirecting to login...');
-      updateStatus('Redirecting to login...', false);
-      
-      setTimeout(() => {
-        window.location.href = '/login.html?redirect=employee';
-      }, 1000);
-    }
-  });
-}
-
-// ========================================
-// CHECK LAST ATTENDANCE
-// ========================================
-async function checkLastAttendance(userId) {
-  try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    console.log('🔍 Checking last attendance for today...');
-    
-    const q = query(
-      collection(db, COLLECTION_NAME),
-      where('userId', '==', userId),
-      where('timestamp', '>=', Timestamp.fromDate(today)),
-      orderBy('timestamp', 'desc'),
-      limit(1)
-    );
-    
-    const snapshot = await getDocs(q);
-    
-    if (!snapshot.empty) {
-      const lastRecord = snapshot.docs[0].data();
-      console.log('✅ Found last attendance:', lastRecord.type, 'at', lastRecord.timestamp?.toDate());
-      
-      if (lastRecord.type === 'masuk') {
-        attendanceType = 'pulang';
-        if (DOM.startBtn) {
-          DOM.startBtn.textContent = 'Mulai Absen Pulang';
-          DOM.startBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
-        }
-        console.log('📌 Set attendance type to: PULANG');
-      } else {
-        console.log('📌 Set attendance type to: MASUK');
-      }
-    } else {
-      console.log('ℹ️ No attendance record today');
-    }
-    
-  } catch (error) {
-    console.error('❌ Check attendance error:', error);
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
-    
-    // ✅ Better error handling
-    if (error.code === 'failed-precondition') {
-      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.error('❌ MISSING COMPOSITE INDEX!');
-      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.error('Collection:', COLLECTION_NAME);
-      console.error('Fields needed: userId (ASC), timestamp (DESC)');
-      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      
-      updateStatus('⚠️ Setting up database index. Please wait...', false);
-      
-      // Extract auto-create link from error
-      if (error.message.includes('https://')) {
-        const urlMatch = error.message.match(/https:\/\/[^\s]+/);
-        if (urlMatch) {
-          console.log('📝 Auto-create index here:');
-          console.log(urlMatch[0]);
-          
-          setTimeout(() => {
-            if (confirm('Database index belum ada.\n\nBuka link auto-create di console?\n(Tekan F12 untuk lihat console)')) {
-              window.open(urlMatch[0], '_blank');
-            }
-          }, 1000);
-        }
-      }
-      
-    } else if (error.code === 'permission-denied') {
-      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.error('❌ PERMISSION DENIED!');
-      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.error('Collection:', COLLECTION_NAME);
-      console.error('User ID:', userId);
-      console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      
-      updateStatus('⚠️ Permission denied. Check Firestore Rules!', true);
-      
-      setTimeout(() => {
-        alert(
-          '❌ Firestore Permission Denied!\n\n' +
-          'Solusi:\n' +
-          '1. Deploy Firestore Rules:\n' +
-          '   firebase deploy --only firestore:rules\n\n' +
-          '2. Pastikan rules membolehkan read untuk collection "' + COLLECTION_NAME + '"\n\n' +
-          '3. Refresh halaman setelah deploy'
-        );
-      }, 500);
-      
-    } else {
-      updateStatus('⚠️ Error: ' + error.message, true);
-    }
-  }
-}
-
-// ========================================
-// LOAD HISTORY
-// ========================================
-function loadUserHistory(userId) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  try {
-    console.log('📊 Loading attendance history...');
-    
-    const q = query(
-      collection(db, COLLECTION_NAME),
-      where('userId', '==', userId),
-      where('timestamp', '>=', Timestamp.fromDate(today)),
-      orderBy('timestamp', 'desc')
-    );
-    
-    onSnapshot(q, 
-      (snapshot) => {
-        if (!DOM.historyContainer) return;
-        
-        if (snapshot.empty) {
-          DOM.historyContainer.innerHTML = '<p class="text-gray-400">Belum ada riwayat hari ini.</p>';
-          console.log('ℹ️ No history records today');
-          return;
-        }
-        
-        console.log(`✅ Loaded ${snapshot.docs.length} history records`);
-        
-        const history = snapshot.docs.map(doc => {
-          const data = doc.data();
-          const time = data.timestamp?.toDate() || new Date();
-          const typeColor = data.type === 'masuk' ? 'text-green-400' : 'text-yellow-400';
-          
-          return `
-            <div class="flex justify-between items-center border-b border-gray-800 py-3">
-              <span class="${typeColor} font-bold uppercase text-sm">
-                ${data.type || '-'}
-              </span>
-              <span class="text-white">${formatTime(time)}</span>
-              <span class="text-gray-500 text-xs">${data.locationName || 'Unknown'}</span>
-            </div>
-          `;
-        });
-        
-        DOM.historyContainer.innerHTML = history.join('');
-      },
-      (error) => {
-        console.error('❌ History error:', error);
-        if (DOM.historyContainer) {
-          DOM.historyContainer.innerHTML = '<p class="text-red-400">Error: ' + error.message + '</p>';
-        }
-      }
-    );
-    
-  } catch (error) {
-    console.error('❌ Load history error:', error);
-  }
-}
-
-// ========================================
-// ✅ NEW: REVERSE GEOCODING FUNCTION
-// ========================================
-
-/**
- * Get address from coordinates using OpenStreetMap Nominatim
- * @param {number} latitude - Latitude
- * @param {number} longitude - Longitude
- * @returns {Promise<string>} Address string
- */
-async function getAddressFromCoordinates(latitude, longitude) {
-  try {
-    console.log('🗺️ Getting address from coordinates...');
-    
-    // Using OpenStreetMap Nominatim (Free, no API key needed)
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-        'User-Agent': 'ApptU-Admin-App' // Required by Nominatim
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error('Geocoding API error');
-    }
-    
-    const data = await response.json();
-    
-    if (data.error) {
-      throw new Error(data.error);
-    }
-    
-    // Build readable address
-    const address = data.address || {};
-    
-    // Extract relevant parts
-    const parts = [];
-    
-    // Street/Road
-    if (address.road) parts.push(address.road);
-    if (address.neighbourhood) parts.push(address.neighbourhood);
-    
-    // District/Suburb
-    if (address.suburb) parts.push(address.suburb);
-    else if (address.village) parts.push(address.village);
-    
-    // City
-    if (address.city) parts.push(address.city);
-    else if (address.county) parts.push(address.county);
-    else if (address.state) parts.push(address.state);
-    
-    // Use display_name as fallback
-    const addressString = parts.length > 0 
-      ? parts.join(', ')
-      : data.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-    
-    console.log('✅ Address found:', addressString);
-    
-    return addressString;
-    
-  } catch (error) {
-    console.error('❌ Geocoding error:', error);
-    
-    // Fallback to coordinates
-    return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-  }
-}
-
-// ========================================
-// UPDATE: GEOLOCATION FUNCTION
-// ========================================
-async function getLocation() {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) {
-      updateStatus('Geolokasi tidak didukung');
-      resolve({ address: 'Unknown', latitude: null, longitude: null });
+    if (!user) {
+      console.log('❌ User not logged in. Redirecting...');
+      window.location.href = '/login.html';
       return;
     }
     
-    updateStatus('Mendapatkan lokasi...');
+    console.log('✅ User logged in:', user.email || user.uid);
     
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        
-        updateStatus('Mendapatkan alamat...');
-        
-        // ✅ Get address from coordinates
-        const address = await getAddressFromCoordinates(latitude, longitude);
-        
-        // Store in state
-        attendanceData.locationName = address;
-        attendanceData.latitude = latitude;
-        attendanceData.longitude = longitude;
-        
-        // Display address (not coordinates)
-        if (DOM.locationMessage) {
-          DOM.locationMessage.innerHTML = `
-            <div class="flex items-start">
-              <i class="fas fa-map-marker-alt mr-2 mt-1 text-blue-400"></i>
-              <div class="flex-1">
-                <p class="text-sm text-white font-semibold">Lokasi:</p>
-                <p class="text-xs text-gray-300 mt-1">${address}</p>
-                <p class="text-xs text-gray-500 mt-1">
-                  ${latitude.toFixed(6)}, ${longitude.toFixed(6)}
-                </p>
-              </div>
-            </div>
-          `;
-        }
-        
-        updateStatus('Lokasi berhasil didapat');
-        resolve({ address, latitude, longitude });
-      },
-      (error) => {
-        console.warn('Location error:', error);
-        updateStatus('Lanjut tanpa lokasi');
-        
-        attendanceData.locationName = 'Location unavailable';
-        attendanceData.latitude = null;
-        attendanceData.longitude = null;
-        
-        if (DOM.locationMessage) {
-          DOM.locationMessage.innerHTML = `
-            <i class="fas fa-map-marker-alt mr-2 text-red-400"></i>
-            <span class="text-xs text-red-400">Lokasi tidak tersedia</span>
-          `;
-        }
-        
-        resolve({ address: 'Unknown', latitude: null, longitude: null });
-      },
-      { 
-        enableHighAccuracy: true, 
-        timeout: 15000, // Increased timeout for geocoding
-        maximumAge: 0 
+    try {
+      // Check if user is admin (will auto-create if missing)
+      const userRole = await getUserRole(user.uid, true);
+      
+      console.log('👤 User role:', userRole);
+      
+      if (userRole !== ROLES.ADMIN) {
+        console.warn('⚠️ User is not admin. Access denied.');
+        showUnauthorized();
+        return;
       }
-    );
+      
+      currentUserRole = userRole;
+      console.log('✅ Admin access granted');
+      
+      // Update UI
+      if (DOM.userInfo) {
+        const userName = user.email || user.displayName || `Admin-${user.uid.slice(-6)}`;
+        DOM.userInfo.innerHTML = `
+          <i class="fas fa-user-shield mr-2"></i>
+          ${userName}
+        `;
+      }
+      
+      // Enable logout button
+      if (DOM.logoutBtn) {
+        DOM.logoutBtn.disabled = false;
+      }
+      
+      // ✅ Initialize date inputs
+      initializeDateInputs();
+      
+      // Load data
+      loadData();
+      
+    } catch (error) {
+      console.error('❌ Role check error:', error);
+      
+      if (DOM.tbody) {
+        DOM.tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center py-12">
+              <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+              <p class="text-red-400 mb-2">Error verifying admin access</p>
+              <p class="text-gray-500 text-sm">${error.message}</p>
+              <div class="mt-4 space-x-2">
+                <button onclick="location.reload()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                  Retry
+                </button>
+                <a href="/fix-user.html" class="inline-block bg-yellow-600 text-white px-6 py-2 rounded hover:bg-yellow-700">
+                  Fix Account
+                </a>
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+    }
   });
 }
 
 // ========================================
-// CAMERA (WITH FALLBACK)
+// LOAD DATA
 // ========================================
-async function startCamera() {
+function loadData() {
   try {
-    updateStatus('Mengaktifkan kamera...');
+    // ✅ Use filter dates or default to today
+    const fromDate = currentFilter.dateFrom || new Date();
+    fromDate.setHours(0, 0, 0, 0);
     
-    if (streamInstance) {
-      streamInstance.getTracks().forEach(track => track.stop());
+    const toDate = currentFilter.dateTo || new Date();
+    toDate.setHours(23, 59, 59, 999);
+    
+    console.log('📊 Loading data from', fromDate, 'to', toDate);
+    
+    const q = query(
+      collection(db, COLLECTION_NAME),
+      where('timestamp', '>=', Timestamp.fromDate(fromDate)),
+      where('timestamp', '<=', Timestamp.fromDate(toDate)),
+      orderBy('timestamp', 'desc'),
+      limit(MAX_RECORDS)
+    );
+    
+    // ✅ Unsubscribe previous listener
+    if (unsubscribeSnapshot) {
+      unsubscribeSnapshot();
     }
     
-    const constraints = [
-      { video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } },
-      { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } },
-      { video: { width: { ideal: 1280 }, height: { ideal: 720 } } },
-      { video: true }
+    unsubscribeSnapshot = onSnapshot(q, 
+      (snapshot) => {
+        allRecords = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data().timestamp?.toDate() || new Date()
+        }));
+        
+        filteredRecords = [...allRecords]; // ✅ Copy to filtered
+        
+        console.log(`📊 Loaded ${allRecords.length} records`);
+        
+        updateStats();
+        renderTable();
+        updateFilterInfo(); // ✅ Update filter info
+      },
+      (error) => {
+        console.error('❌ Snapshot error:', error);
+        
+        if (error.code === 'permission-denied') {
+          showError('⚠️ Permission denied. Cek Firestore rules!\n\nRun: firebase deploy --only firestore:rules');
+        } else if (error.code === 'failed-precondition') {
+          showError('⚠️ Missing index! Check console for auto-create link.');
+        } else {
+          showError('Error loading data: ' + error.message);
+        }
+      }
+    );
+    
+  } catch (error) {
+    console.error('❌ Load data error:', error);
+    showError('Failed to load data: ' + error.message);
+  }
+}
+
+// ========================================
+// ✅ UPDATE FILTER INFO
+// ========================================
+function updateFilterInfo() {
+  if (!DOM.filterInfo || !DOM.filterInfoText) return;
+  
+  const fromDate = currentFilter.dateFrom;
+  const toDate = currentFilter.dateTo;
+  
+  if (fromDate && toDate) {
+    const fromStr = fromDate.toLocaleDateString('id-ID');
+    const toStr = toDate.toLocaleDateString('id-ID');
+    
+    if (fromStr === toStr) {
+      DOM.filterInfoText.textContent = `Menampilkan data tanggal ${fromStr} (${filteredRecords.length} records)`;
+    } else {
+      DOM.filterInfoText.textContent = `Menampilkan data dari ${fromStr} sampai ${toStr} (${filteredRecords.length} records)`;
+    }
+    
+    DOM.filterInfo.classList.remove('hidden');
+  } else {
+    DOM.filterInfo.classList.add('hidden');
+  }
+}
+
+// ========================================
+// UPDATE STATS
+// ========================================
+function updateStats() {
+  // ✅ Use filteredRecords instead of allRecords
+  const totalMasuk = filteredRecords.filter(r => r.type === 'masuk').length;
+  const totalPulang = filteredRecords.filter(r => r.type === 'pulang').length;
+  
+  if (DOM.totalRecords) DOM.totalRecords.textContent = filteredRecords.length;
+  if (DOM.totalMasuk) DOM.totalMasuk.textContent = totalMasuk;
+  if (DOM.totalPulang) DOM.totalPulang.textContent = totalPulang;
+}
+
+// ========================================
+// RENDER TABLE
+// ========================================
+function renderTable() {
+  if (!DOM.tbody) return;
+  
+  // ✅ Use filteredRecords
+  if (filteredRecords.length === 0) {
+    DOM.tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center py-12 text-gray-500">
+          <i class="fas fa-inbox text-5xl mb-4 opacity-30"></i>
+          <p class="text-lg">Tidak ada data absensi untuk periode ini</p>
+          <p class="text-sm mt-2">Pilih tanggal lain atau reset filter</p>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  DOM.tbody.innerHTML = filteredRecords.map(r => {
+    const typeColor = r.type === 'masuk' ? '#10b981' : '#f59e0b';
+    const typeIcon = r.type === 'masuk' ? 'fa-sign-in-alt' : 'fa-sign-out-alt';
+    
+    return `
+      <tr class="table-row border-b border-gray-800 cursor-pointer transition hover:bg-gray-800" onclick="showDetail('${r.id}')">
+        <td class="p-3 text-sm">
+          ${r.timestamp.toLocaleString('id-ID', { 
+            day: '2-digit', 
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit', 
+            minute: '2-digit' 
+          })}
+        </td>
+        <td class="p-3">
+          <span class="inline-flex items-center px-2 py-1 rounded text-xs font-semibold" 
+                style="background: ${typeColor}20; color: ${typeColor};">
+            <i class="fas ${typeIcon} mr-1"></i>
+            ${r.type?.toUpperCase() || '-'}
+          </span>
+        </td>
+        <td class="p-3 text-sm">
+          <i class="fas fa-user mr-1 text-gray-500"></i>
+          ${r.userEmail || r.userId?.slice(-8) || 'Guest'}
+        </td>
+        <td class="p-3 text-sm text-gray-400" title="${r.locationName || 'Unknown'}">
+          <i class="fas fa-map-marker-alt mr-1"></i>
+          ${truncate(r.locationName || 'Unknown', 30)}
+        </td>
+        <td class="p-3">
+          <button 
+            onclick="event.stopPropagation(); deleteRecord('${r.id}')" 
+            class="text-red-400 hover:text-red-300 transition text-sm"
+            title="Hapus"
+          >
+            <i class="fas fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ========================================
+// SHOW DETAIL
+// ========================================
+window.showDetail = function(id) {
+  // ✅ Use filteredRecords
+  const record = filteredRecords.find(r => r.id === id);
+  if (!record) return;
+  
+  if (DOM.noPhotoMsg) DOM.noPhotoMsg.classList.add('hidden');
+  if (DOM.detailView) DOM.detailView.classList.remove('hidden');
+  
+  if (DOM.verifPhoto) {
+    if (record.photoBase64) {
+      DOM.verifPhoto.src = record.photoBase64;
+      DOM.verifPhoto.onerror = () => {
+        DOM.verifPhoto.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="%23ddd"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999">No Photo</text></svg>';
+      };
+    } else {
+      DOM.verifPhoto.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="%23ddd"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999">No Photo</text></svg>';
+    }
+  }
+  
+  const typeColor = record.type === 'masuk' ? '#10b981' : '#f59e0b';
+  if (DOM.verifStatus) {
+    DOM.verifStatus.innerHTML = `<span style="color: ${typeColor}">${record.type?.toUpperCase() || '-'}</span>`;
+  }
+  if (DOM.verifTime) {
+    DOM.verifTime.textContent = record.timestamp.toLocaleString('id-ID');
+  }
+  if (DOM.verifUser) {
+    DOM.verifUser.textContent = record.userEmail || record.userId?.slice(-8) || 'Anonymous';
+  }
+  
+  if (DOM.verifCoords) {
+    const locationName = record.locationName || 'Unknown';
+    const hasCoordinates = record.coordinates && record.coordinates.latitude;
+    
+    DOM.verifCoords.innerHTML = `
+      <div class="space-y-2">
+        <div class="flex items-start">
+          <i class="fas fa-map-marker-alt mr-2 mt-1 text-blue-400"></i>
+          <div class="flex-1">
+            <p class="text-white font-semibold text-sm">Alamat:</p>
+            <p class="text-gray-300 text-xs mt-1">${locationName}</p>
+          </div>
+        </div>
+        
+        ${hasCoordinates ? `
+        <div class="flex items-center text-xs text-gray-500">
+          <i class="fas fa-crosshairs mr-2"></i>
+          <span>${record.coordinates.latitude.toFixed(6)}, ${record.coordinates.longitude.toFixed(6)}</span>
+        </div>
+        ` : ''}
+      </div>
+    `;
+  }
+  
+  if (record.coordinates && record.coordinates.latitude) {
+    const { latitude, longitude } = record.coordinates;
+    if (DOM.verifMap) {
+      DOM.verifMap.href = `https://maps.google.com/?q=${latitude},${longitude}`;
+      DOM.verifMap.classList.remove('hidden');
+    }
+  } else {
+    if (DOM.verifMap) {
+      DOM.verifMap.classList.add('hidden');
+    }
+  }
+};
+
+// ========================================
+// DELETE RECORD
+// ========================================
+window.deleteRecord = async function(id) {
+  if (!confirm('Hapus record ini?\nTindakan ini tidak dapat dibatalkan.')) return;
+  
+  try {
+    await deleteDoc(doc(db, COLLECTION_NAME, id));
+    console.log('✅ Deleted:', id);
+    
+    const record = filteredRecords.find(r => r.id === id);
+    if (record) {
+      if (DOM.detailView) DOM.detailView.classList.add('hidden');
+      if (DOM.noPhotoMsg) DOM.noPhotoMsg.classList.remove('hidden');
+    }
+    
+  } catch (error) {
+    console.error('❌ Delete error:', error);
+    alert('Gagal menghapus record: ' + error.message);
+  }
+};
+
+// ========================================
+// ✅ EXPORT TO EXCEL
+// ========================================
+async function exportToExcel() {
+  try {
+    if (filteredRecords.length === 0) {
+      alert('❌ Tidak ada data untuk di-export!\n\nPastikan ada data di periode yang dipilih.');
+      return;
+    }
+    
+    console.log('📊 Exporting', filteredRecords.length, 'records to Excel...');
+    
+    // Show loading
+    const originalHTML = DOM.exportExcelBtn.innerHTML;
+    DOM.exportExcelBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Exporting...';
+    DOM.exportExcelBtn.disabled = true;
+    
+    // Prepare data for Excel
+    const excelData = filteredRecords.map((record, index) => {
+      return {
+        'No': index + 1,
+        'Tanggal': record.timestamp.toLocaleDateString('id-ID', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric'
+        }),
+        'Waktu': record.timestamp.toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }),
+        'Nama/Email': record.userEmail || record.userId || '-',
+        'Status': record.type?.toUpperCase() || '-',
+        'Lokasi': record.locationName || 'Unknown',
+        'Latitude': record.coordinates?.latitude?.toFixed(6) || '-',
+        'Longitude': record.coordinates?.longitude?.toFixed(6) || '-',
+        'Keterangan': record.status || 'hadir'
+      };
+    });
+    
+    // Create worksheet
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    
+    // Set column widths
+    const colWidths = [
+      { wch: 5 },  // No
+      { wch: 15 }, // Tanggal
+      { wch: 12 }, // Waktu
+      { wch: 30 }, // Nama/Email
+      { wch: 10 }, // Status
+      { wch: 45 }, // Lokasi (wider for full address)
+      { wch: 12 }, // Latitude
+      { wch: 12 }, // Longitude
+      { wch: 10 }  // Keterangan
     ];
+    ws['!cols'] = colWidths;
     
-    let stream = null;
-    let lastError = null;
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Laporan Absensi');
     
-    for (const constraint of constraints) {
-      try {
-        console.log('📷 Trying camera with:', constraint);
-        stream = await navigator.mediaDevices.getUserMedia(constraint);
-        break;
-      } catch (err) {
-        console.warn('⚠️ Camera constraint failed:', constraint, err.message);
-        lastError = err;
-      }
+    // Generate filename
+    const fromDate = currentFilter.dateFrom || new Date();
+    const toDate = currentFilter.dateTo || new Date();
+    const fromStr = fromDate.toISOString().split('T')[0];
+    const toStr = toDate.toISOString().split('T')[0];
+    
+    let filename = `Laporan_Absensi_${fromStr}`;
+    if (fromStr !== toStr) {
+      filename += `_to_${toStr}`;
     }
+    filename += '.xlsx';
     
-    if (!stream) {
-      throw lastError || new Error('No camera available');
-    }
+    // Download file
+    XLSX.writeFile(wb, filename);
     
-    streamInstance = stream;
+    console.log('✅ Excel file downloaded:', filename);
     
-    if (DOM.video) {
-      DOM.video.srcObject = streamInstance;
-      DOM.video.style.display = 'block';
-    }
-    if (DOM.videoPlaceholder) {
-      DOM.videoPlaceholder.style.display = 'none';
-    }
-    
-    updateStatus('Kamera aktif - Ambil foto Anda');
-    console.log('✅ Camera started successfully');
+    // Show success message
+    const message = `✅ Export berhasil!\n\nFile: ${filename}\nTotal records: ${filteredRecords.length}\n\nFile tersimpan di folder Downloads.`;
+    alert(message);
     
   } catch (error) {
-    console.error('❌ Camera error:', error);
-    
-    let errorMsg = 'Gagal mengakses kamera';
-    if (error.name === 'NotFoundError') {
-      errorMsg = 'Kamera tidak ditemukan. Gunakan device dengan kamera.';
-    } else if (error.name === 'NotAllowedError') {
-      errorMsg = 'Akses kamera ditolak. Izinkan akses kamera di browser.';
-    } else if (error.name === 'NotReadableError') {
-      errorMsg = 'Kamera sedang digunakan aplikasi lain.';
-    }
-    
-    updateStatus(errorMsg, true);
-    alert(errorMsg + '\n\nTips:\n- Pastikan device memiliki kamera\n- Berikan izin akses kamera\n- Tutup aplikasi lain yang menggunakan kamera');
-    
-    resetUI();
-  }
-}
-
-function capturePhoto() {
-  if (!streamInstance) {
-    updateStatus('Kamera tidak aktif', true);
-    return;
-  }
-  
-  try {
-    const ctx = DOM.canvasHidden.getContext('2d');
-    DOM.canvasHidden.width = DOM.video.videoWidth || 640;
-    DOM.canvasHidden.height = DOM.video.videoHeight || 480;
-    ctx.drawImage(DOM.video, 0, 0);
-    
-    attendanceData.photoBase64 = DOM.canvasHidden.toDataURL('image/jpeg', 0.7);
-    
-    const ctxCapture = DOM.canvasCapture.getContext('2d');
-    DOM.canvasCapture.width = DOM.video.videoWidth || 640;
-    DOM.canvasCapture.height = DOM.video.videoHeight || 480;
-    ctxCapture.drawImage(DOM.video, 0, 0);
-    DOM.canvasCapture.style.display = 'block';
-    
-    DOM.video.style.display = 'none';
-    if (streamInstance) {
-      streamInstance.getTracks().forEach(track => track.stop());
-      streamInstance = null;
-    }
-    
-    DOM.captureBtn.classList.add('hidden');
-    DOM.submitBtn.classList.remove('hidden');
-    
-    updateStatus('Foto berhasil diambil - Kirim absensi?');
-    console.log('✅ Photo captured successfully');
-  } catch (error) {
-    console.error('❌ Capture error:', error);
-    updateStatus('Gagal mengambil foto', true);
-  }
-}
-
-// ========================================
-// SUBMIT ATTENDANCE
-// ========================================
-async function submitAttendance() {
-  if (!attendanceData.photoBase64) {
-    updateStatus('Ambil foto terlebih dahulu', true);
-    return;
-  }
-  
-  if (!currentUser) {
-    updateStatus('User tidak terautentikasi', true);
-    return;
-  }
-  
-  DOM.submitBtn.disabled = true;
-  updateStatus('Mengirim absensi...');
-  
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📤 SUBMITTING ATTENDANCE');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('User ID:', currentUser.uid);
-  console.log('Type:', attendanceType);
-  console.log('Location:', attendanceData.locationName);
-  console.log('Collection:', COLLECTION_NAME);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  
-  try {
-    const attendanceRecord = {
-      userId: currentUser.uid,
-      userEmail: currentUser.email || 'anonymous',
-      type: attendanceType,
-      status: 'hadir',
-      timestamp: serverTimestamp(),
-      locationName: attendanceData.locationName || 'Unknown',
-      coordinates: attendanceData.latitude && attendanceData.longitude ? {
-        latitude: attendanceData.latitude,
-        longitude: attendanceData.longitude
-      } : null,
-      photoBase64: attendanceData.photoBase64,
-      deviceInfo: {
-        userAgent: navigator.userAgent,
-        platform: navigator.platform
-      }
-    };
-    
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), attendanceRecord);
-    
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('✅ ATTENDANCE SAVED SUCCESSFULLY!');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('Document ID:', docRef.id);
-    console.log('Type:', attendanceType);
-    console.log('Timestamp:', new Date().toISOString());
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    
-    updateStatus(`✅ Absensi ${attendanceType} berhasil disimpan!`);
-    
-    // Change button for next attendance
-    if (attendanceType === 'masuk') {
-      attendanceType = 'pulang';
-      DOM.startBtn.textContent = 'Mulai Absen Pulang';
-      DOM.startBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
-    } else {
-      attendanceType = 'masuk';
-      DOM.startBtn.textContent = 'Mulai Absen Masuk';
-      DOM.startBtn.style.background = '';
-    }
-    
-    setTimeout(resetUI, 2000);
-    
-  } catch (error) {
-    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.error('❌ SUBMIT ERROR!');
-    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
-    console.error('Full error:', error);
-    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    
-    if (error.code === 'permission-denied') {
-      updateStatus('❌ Permission denied! Check Firestore Rules!', true);
-      
-      alert(
-        '❌ Permission Denied!\n\n' +
-        'Kemungkinan masalah:\n' +
-        '1. Firestore Rules belum allow CREATE\n' +
-        '2. User document belum ada\n' +
-        '3. Rules terlalu ketat\n\n' +
-        'Solusi:\n' +
-        '1. Deploy rules: firebase deploy --only firestore:rules\n' +
-        '2. Refresh halaman\n' +
-        '3. Contact admin jika masih error'
-      );
-    } else {
-      updateStatus('❌ Gagal mengirim: ' + error.message, true);
-    }
+    console.error('❌ Export error:', error);
+    alert('❌ Gagal export ke Excel!\n\nError: ' + error.message + '\n\nPastikan SheetJS library sudah ter-load.');
   } finally {
-    DOM.submitBtn.disabled = false;
+    // Reset button
+    DOM.exportExcelBtn.innerHTML = '<i class="fas fa-file-excel mr-2"></i>Export Excel';
+    DOM.exportExcelBtn.disabled = false;
   }
 }
 
 // ========================================
-// RESET UI
+// ✅ FILTER HANDLER
 // ========================================
-function resetUI() {
-  if (streamInstance) {
-    streamInstance.getTracks().forEach(track => track.stop());
-    streamInstance = null;
+function applyFilter() {
+  try {
+    const fromDateStr = DOM.dateFrom.value;
+    const toDateStr = DOM.dateTo.value;
+    
+    if (!fromDateStr || !toDateStr) {
+      alert('⚠️ Pilih tanggal dari dan sampai!');
+      return;
+    }
+    
+    const fromDate = new Date(fromDateStr);
+    const toDate = new Date(toDateStr);
+    
+    if (fromDate > toDate) {
+      alert('⚠️ Tanggal "Dari" tidak boleh lebih besar dari tanggal "Sampai"!');
+      return;
+    }
+    
+    currentFilter.dateFrom = fromDate;
+    currentFilter.dateTo = toDate;
+    
+    console.log('🔍 Applying filter:', fromDate, 'to', toDate);
+    
+    // Reload data with new filter
+    loadData();
+    
+  } catch (error) {
+    console.error('❌ Filter error:', error);
+    alert('Error applying filter: ' + error.message);
   }
+}
+
+// ========================================
+// ✅ RESET FILTER
+// ========================================
+function resetFilter() {
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
   
-  attendanceData = {
-    photoBase64: null,
-    locationName: null,
-    latitude: null,
-    longitude: null
-  };
+  DOM.dateFrom.value = todayStr;
+  DOM.dateTo.value = todayStr;
   
-  if (DOM.video) DOM.video.style.display = 'none';
-  if (DOM.canvasCapture) DOM.canvasCapture.style.display = 'none';
-  if (DOM.videoPlaceholder) DOM.videoPlaceholder.style.display = 'flex';
+  currentFilter.dateFrom = today;
+  currentFilter.dateTo = today;
   
-  if (DOM.startBtn) {
-    DOM.startBtn.classList.remove('hidden');
-    DOM.startBtn.disabled = false;
-  }
-  if (DOM.captureBtn) DOM.captureBtn.classList.add('hidden');
-  if (DOM.submitBtn) DOM.submitBtn.classList.add('hidden');
-  if (DOM.resetBtn) DOM.resetBtn.classList.add('hidden');
+  console.log('🔄 Filter reset to today');
   
-  if (DOM.locationMessage) DOM.locationMessage.textContent = '';
-  updateStatus('Sistem siap');
-  
-  console.log('🔄 UI reset completed');
+  loadData();
 }
 
 // ========================================
 // LOGOUT
 // ========================================
-async function logout() {
-  if (!confirm('Logout dari sistem?')) return;
+async function handleLogout() {
+  if (!confirm('Logout dari admin panel?')) return;
   
   try {
-    console.log('🔓 Logging out...');
+    if (unsubscribeSnapshot) {
+      unsubscribeSnapshot();
+    }
     await signOut(auth);
-    console.log('✅ Logged out successfully');
     window.location.href = '/login.html';
   } catch (error) {
     console.error('❌ Logout error:', error);
@@ -802,53 +648,77 @@ async function logout() {
 }
 
 // ========================================
+// REFRESH DATA
+// ========================================
+function refreshData() {
+  if (DOM.refreshBtn) {
+    const originalHTML = DOM.refreshBtn.innerHTML;
+    DOM.refreshBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin mr-1"></i> Refreshing...';
+    DOM.refreshBtn.disabled = true;
+    
+    loadData();
+    
+    setTimeout(() => {
+      DOM.refreshBtn.innerHTML = originalHTML;
+      DOM.refreshBtn.disabled = false;
+    }, 1000);
+  }
+}
+
+// ========================================
+// UTILITY
+// ========================================
+function truncate(str, maxLength) {
+  if (!str) return '';
+  return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
+}
+
+function showError(message) {
+  if (DOM.tbody) {
+    DOM.tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center py-12">
+          <i class="fas fa-exclamation-triangle text-5xl text-red-500 mb-4"></i>
+          <div class="text-red-400 whitespace-pre-line">${message}</div>
+          <button onclick="location.reload()" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+            <i class="fas fa-redo mr-2"></i>
+            Reload Page
+          </button>
+        </td>
+      </tr>
+    `;
+  }
+}
+
+// ========================================
 // EVENT LISTENERS
 // ========================================
-DOM.startBtn?.addEventListener('click', async () => {
-  console.log('🚀 Starting attendance process...');
-  
-  DOM.startBtn.disabled = true;
-  DOM.startBtn.classList.add('hidden');
-  DOM.resetBtn.classList.remove('hidden');
-  
-  await getLocation();
-  await startCamera();
-  
-  if (streamInstance) {
-    DOM.captureBtn.classList.remove('hidden');
+DOM.logoutBtn?.addEventListener('click', handleLogout);
+DOM.refreshBtn?.addEventListener('click', refreshData);
+
+// ✅ Export feature event listeners
+DOM.filterBtn?.addEventListener('click', applyFilter);
+DOM.exportExcelBtn?.addEventListener('click', exportToExcel);
+DOM.resetFilterBtn?.addEventListener('click', resetFilter);
+
+// ✅ Enter key on date inputs triggers filter
+DOM.dateFrom?.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') applyFilter();
+});
+DOM.dateTo?.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') applyFilter();
+});
+
+window.addEventListener('beforeunload', () => {
+  if (unsubscribeSnapshot) {
+    unsubscribeSnapshot();
   }
 });
 
-DOM.captureBtn?.addEventListener('click', capturePhoto);
-DOM.submitBtn?.addEventListener('click', submitAttendance);
-DOM.resetBtn?.addEventListener('click', resetUI);
-DOM.logoutBtn?.addEventListener('click', logout);
-
-window.addEventListener('online', () => {
-  console.log('🌐 Online');
-  DOM.offlineStatus?.classList.add('hidden');
-  updateStatus('Online - Sistem siap');
-});
-
-window.addEventListener('offline', () => {
-  console.log('📡 Offline');
-  DOM.offlineStatus?.classList.remove('hidden');
-  updateStatus('Offline - Data akan disimpan lokal');
-});
-
 // ========================================
-// INITIALIZE APP
+// INITIALIZE
 // ========================================
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('🚀 EMPLOYEE APP STARTING...');
+console.log('🚀 Starting Admin App with Export Feature...');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('Collection:', COLLECTION_NAME);
-console.log('Auth initialized:', !!auth);
-console.log('Firestore initialized:', !!db);
-console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAuth);
-} else {
-  initAuth();
-}
+initAuth();
