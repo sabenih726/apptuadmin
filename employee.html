@@ -1,15 +1,70 @@
-<!-- employee.html -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Absensi Karyawan</title>
+  <title>Absensi Karyawan - ApptU</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#000000">
-  <link rel="stylesheet" href="/styles/employee.css">
+  
+  <style>
+    body {
+      font-family: 'IBM Plex Mono', monospace;
+      background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%);
+    }
+    
+    .card {
+      background: rgba(17, 24, 39, 0.95);
+      border-radius: 12px;
+      border: 1px solid rgba(75, 85, 99, 0.3);
+      backdrop-filter: blur(10px);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.3s;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background: rgba(75, 85, 99, 0.5);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.3s;
+      border: 1px solid rgba(75, 85, 99, 0.5);
+      cursor: pointer;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(75, 85, 99, 0.7);
+    }
+    
+    .status-display {
+      padding: 12px;
+      background: rgba(31, 41, 55, 0.5);
+      border-radius: 8px;
+      border: 1px solid rgba(75, 85, 99, 0.3);
+    }
+  </style>
 </head>
 
 <body class="flex flex-col items-center justify-start min-h-screen p-4">
@@ -26,7 +81,10 @@
         </svg>
         Absensi Karyawan
       </h1>
-      <span id="user-status" class="text-xs text-gray-500">Loading...</span>
+      <div class="text-right">
+        <span id="user-status" class="text-xs text-gray-500 block">Loading...</span>
+        <button id="logout-btn" class="text-xs text-red-400 hover:text-red-300 mt-1 hidden">Logout</button>
+      </div>
     </div>
 
     <!-- Status -->
@@ -43,15 +101,16 @@
 
     <!-- Kamera -->
     <div class="mb-4 aspect-video w-full rounded-md overflow-hidden border border-gray-700 bg-gray-900 flex items-center justify-center">
-      <video id="video" autoplay playsinline class="w-full h-full object-cover"></video>
-      <canvas id="canvas-capture" class="hidden w-full h-full object-cover"></canvas>
-      <canvas id="canvas-hidden" class="hidden"></canvas>
+      <video id="video" autoplay playsinline class="w-full h-full object-cover" style="display:none;"></video>
+      <canvas id="canvas-capture" class="w-full h-full object-cover" style="display:none;"></canvas>
+      <canvas id="canvas-hidden" style="display:none;"></canvas>
       <div id="video-placeholder" class="text-gray-500">
         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"
              fill="none" stroke="currentColor" stroke-width="1.5"
              stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h18z"></path>
           <circle cx="12" cy="13" r="3"></circle>
-          <path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2.5-3z"></path>
+          <path d="M5 19l4.5-4.5a2 2 0 012.8 0L17 19"></path>
         </svg>
       </div>
     </div>
@@ -61,37 +120,19 @@
       <button id="start-btn" class="btn-primary w-full" disabled>Mulai Absensi</button>
       <button id="capture-btn" class="btn-primary w-full hidden">Ambil Foto</button>
       <button id="submit-btn" class="btn-primary w-full hidden">Kirim Absensi</button>
-      <button id="reset-btn" class="btn-secondary w-full hidden">Absen Lagi</button>
+      <button id="reset-btn" class="btn-secondary w-full hidden">Batal</button>
     </div>
   </div>
 
   <!-- Riwayat -->
   <div class="card w-full max-w-md p-6 shadow-lg">
-    <h2 class="text-lg font-bold mb-4 border-b border-gray-700 pb-2">Riwayat Absensi</h2>
+    <h2 class="text-lg font-bold text-white mb-4 border-b border-gray-700 pb-2">Riwayat Absensi Hari Ini</h2>
     <div id="history-container" class="text-sm text-gray-400">
       <p>Memuat riwayat...</p>
     </div>
   </div>
 
-  <!-- ⚠️ PENTING: Load firebase-config DULU sebelum employee-app -->
-  <script type="module">
-    // Pre-load dan verify Firebase config
-    console.log('🔍 Pre-loading Firebase config...');
-    
-    import { app, auth, db, getCollectionPath } from '/firebase-config.js';
-    
-    console.log('✅ Config pre-loaded successfully');
-    console.log('Auth:', auth);
-    console.log('DB:', db);
-    
-    // Make available globally for employee-app.js
-    window.firebaseApp = app;
-    window.firebaseAuth = auth;
-    window.firebaseDB = db;
-    window.getCollectionPath = getCollectionPath;
-  </script>
-  
-  <!-- NOW load employee app -->
+  <!-- Load Scripts -->
   <script type="module" src="/js/employee-app.js"></script>
 </body>
 </html>
