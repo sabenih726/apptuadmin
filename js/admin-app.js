@@ -373,14 +373,77 @@ window.addEventListener('beforeunload', () => {
 });
 
 // ========================================
+// LOGOUT
+// ========================================
+async function logout() {
+  if (!confirm('Logout dari admin panel?')) return;
+  
+  try {
+    if (unsubscribeSnapshot) {
+      unsubscribeSnapshot();
+    }
+    await signOut(auth);
+    window.location.href = '/login.html';
+  } catch (error) {
+    console.error('❌ Logout error:', error);
+    alert('Logout failed: ' + error.message);
+  }
+}
+
+// ========================================
+// REFRESH DATA
+// ========================================
+function refreshData() {
+  if (DOM.refreshBtn) {
+    const originalHTML = DOM.refreshBtn.innerHTML;
+    DOM.refreshBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin mr-1"></i> Refreshing...';
+    DOM.refreshBtn.disabled = true;
+    
+    setTimeout(() => {
+      DOM.refreshBtn.innerHTML = originalHTML;
+      DOM.refreshBtn.disabled = false;
+    }, 1000);
+  }
+}
+
+// ========================================
+// UTILITY
+// ========================================
+function truncate(str, maxLength) {
+  if (!str) return '';
+  return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
+}
+
+function showError(message) {
+  if (DOM.tbody) {
+    DOM.tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center py-12">
+          <i class="fas fa-exclamation-triangle text-5xl text-red-500 mb-4"></i>
+          <div class="text-red-400">${message}</div>
+          <button onclick="location.reload()" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+            <i class="fas fa-redo mr-2"></i>
+            Reload Page
+          </button>
+        </td>
+      </tr>
+    `;
+  }
+}
+
+// ========================================
+// ✅ EXPOSE FUNCTIONS TO GLOBAL SCOPE
+// ========================================
+window.logout = logout;
+window.refreshData = refreshData;
+window.showDetail = showDetail;
+window.deleteRecord = deleteRecord;
+
+// ========================================
 // EVENT LISTENERS
 // ========================================
 DOM.logoutBtn?.addEventListener('click', logout);
 DOM.refreshBtn?.addEventListener('click', refreshData);
-
-// ✅ TAMBAHAN: Expose showDetail dan deleteRecord ke global scope
-window.showDetail = showDetail;
-window.deleteRecord = deleteRecord;
 
 window.addEventListener('beforeunload', () => {
   if (unsubscribeSnapshot) {
