@@ -1,9 +1,6 @@
 // js/admin-app.js
 console.log('📊 Loading admin-app.js...');
 
-// ========================================
-// IMPORT FIREBASE MODULES & CONFIG
-// ========================================
 import {
   signInAnonymously,
   onAuthStateChanged,
@@ -19,10 +16,10 @@ import {
   onSnapshot,
   doc,
   deleteDoc,
+  getDoc,
   Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
 
-// ✅ Import dari firebase-config.js
 import { 
   auth, 
   db, 
@@ -32,9 +29,6 @@ import {
   getFirebaseInfo
 } from '/firebase-config.js';
 
-// ========================================
-// VERIFY FIREBASE
-// ========================================
 if (!isFirebaseInitialized()) {
   console.error('❌ Firebase not initialized!');
   alert('System error: Firebase not initialized');
@@ -42,17 +36,10 @@ if (!isFirebaseInitialized()) {
 }
 
 console.log('✅ Firebase verified in admin-app.js');
-console.log('📋 Firebase Info:', getFirebaseInfo());
 
-// ========================================
-// CONFIG
-// ========================================
-const COLLECTION_NAME = getCollectionPath(); // Default 'attendance'
+const COLLECTION_NAME = getCollectionPath();
 const MAX_RECORDS = 100;
 
-// ========================================
-// DOM ELEMENTS
-// ========================================
 const DOM = {
   tbody: document.getElementById('attendance-table-body'),
   verifPhoto: document.getElementById('verification-photo'),
@@ -71,11 +58,54 @@ const DOM = {
   refreshBtn: document.getElementById('refresh-btn')
 };
 
-// ========================================
-// STATE
-// ========================================
 let allRecords = [];
 let unsubscribeSnapshot = null;
+let currentUserRole = null;
+
+// ========================================
+// ✅ CHECK IF USER IS ADMIN
+// ========================================
+async function checkAdminRole(userId) {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    
+    if (!userDoc.exists()) {
+      console.warn('⚠️ User document not found');
+      return false;
+    }
+    
+    const userData = userDoc.data();
+    return userData.role === 'admin';
+    
+  } catch (error) {
+    console.error('❌ Error checking admin role:', error);
+    return false;
+  }
+}
+
+// ========================================
+// ✅ SHOW UNAUTHORIZED PAGE
+// ========================================
+function showUnauthorized() {
+  document.body.innerHTML = `
+    <div class="min-h-screen flex items-center justify-center bg-gray-900 p-4">
+      <div class="text-center">
+        <i class="fas fa-lock text-6xl text-red-500 mb-4"></i>
+        <h1 class="text-3xl font-bold text-white mb-4">Access Denied</h1>
+        <p class="text-gray-400 mb-8">You don't have permission to access this page.</p>
+        <p class="text-gray-500 mb-8">Only admin users can access the dashboard.</p>
+        <div class="space-x-4">
+          <a href="/login.html" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+            Go to Login
+          </a>
+          <a href="/employee.html" class="inline-block bg-gray-700 text-white px-6 py-3 rounded-lg hover:bg-gray-600">
+            Employee Page
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+}
 
 // ========================================
 // AUTH
@@ -83,27 +113,36 @@ let unsubscribeSnapshot = null;
 async function initAuth() {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
-      console.log('✅ Admin logged in:', user.email || user.uid);
+      console.log('✅ User logged in:', user.email || user.uid);
+      
+      // ✅ CHECK IF ADMIN
+      const isAdmin = await checkAdminRole(user.uid);
+      
+      if (!isAdmin) {
+        console.warn('⚠️ User is not admin. Access denied.');
+        showUnauthorized();
+        return;
+      }
+      
+      currentUserRole = 'admin';
+      console.log('✅ Admin access granted');
+      
       if (DOM.userInfo) {
-        DOM.userInfo.textContent = user.email || `User: ${user.uid.slice(-6)}`;
+        DOM.userInfo.textContent = user.email || `Admin: ${user.uid.slice(-6)}`;
       }
+      
       loadData();
+      
     } else {
-      try {
-        console.log('🔐 Attempting anonymous login...');
-        await signInAnonymously(auth);
-      } catch (error) {
-        console.error('❌ Auth error:', error);
-        alert('Authentication failed. Redirecting to login...');
-        window.location.href = '/login.html';
-      }
+      // Not logged in - redirect to login
+      console.log('❌ User not logged in. Redirecting...');
+      window.location.href = '/login.html';
     }
   });
 }
 
-// ========================================
-// LOAD DATA
-// ========================================
+// ... (rest of the code tetap sama)
+
 function loadData() {
   try {
     const today = new Date();
@@ -125,7 +164,6 @@ function loadData() {
         }));
         
         console.log(`📊 Loaded ${allRecords.length} records`);
-        
         updateStats();
         renderTable();
       },
@@ -133,7 +171,7 @@ function loadData() {
         console.error('❌ Snapshot error:', error);
         
         if (error.code === 'permission-denied') {
-          showError('⚠️ Permission denied. Cek Firestore Rules!\n\nRun: firebase deploy --only firestore:rules');
+          showError('⚠️ Permission denied. Deploy Firestore rules dengan role admin!');
         } else {
           showError('Error loading data: ' + error.message);
         }
@@ -146,9 +184,6 @@ function loadData() {
   }
 }
 
-// ========================================
-// UPDATE STATS
-// ========================================
 function updateStats() {
   const totalMasuk = allRecords.filter(r => r.type === 'masuk').length;
   const totalPulang = allRecords.filter(r => r.type === 'pulang').length;
@@ -158,9 +193,6 @@ function updateStats() {
   if (DOM.totalPulang) DOM.totalPulang.textContent = totalPulang;
 }
 
-// ========================================
-// RENDER TABLE
-// ========================================
 function renderTable() {
   if (!DOM.tbody) return;
   
@@ -219,9 +251,6 @@ function renderTable() {
   }).join('');
 }
 
-// ========================================
-// SHOW DETAIL
-// ========================================
 window.showDetail = function(id) {
   const record = allRecords.find(r => r.id === id);
   if (!record) return;
@@ -270,9 +299,6 @@ window.showDetail = function(id) {
   }
 };
 
-// ========================================
-// DELETE RECORD
-// ========================================
 window.deleteRecord = async function(id) {
   if (!confirm('Hapus record ini?\nTindakan ini tidak dapat dibatalkan.')) return;
   
@@ -292,9 +318,6 @@ window.deleteRecord = async function(id) {
   }
 };
 
-// ========================================
-// LOGOUT
-// ========================================
 async function logout() {
   if (!confirm('Logout dari admin panel?')) return;
   
@@ -310,9 +333,6 @@ async function logout() {
   }
 }
 
-// ========================================
-// REFRESH DATA
-// ========================================
 function refreshData() {
   if (DOM.refreshBtn) {
     DOM.refreshBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin mr-1"></i> Refreshing...';
@@ -325,9 +345,6 @@ function refreshData() {
   }, 1000);
 }
 
-// ========================================
-// UTILITY
-// ========================================
 function truncate(str, maxLength) {
   if (!str) return '';
   return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
@@ -346,9 +363,6 @@ function showError(message) {
   }
 }
 
-// ========================================
-// EVENT LISTENERS
-// ========================================
 DOM.logoutBtn?.addEventListener('click', logout);
 DOM.refreshBtn?.addEventListener('click', refreshData);
 
@@ -358,8 +372,5 @@ window.addEventListener('beforeunload', () => {
   }
 });
 
-// ========================================
-// INITIALIZE
-// ========================================
 console.log('🚀 Starting Admin App...');
 initAuth();
