@@ -1,15 +1,16 @@
 // js/employee-app.js
 console.log('📱 Loading employee-app.js...');
 
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+// ========================================
+// IMPORT FIREBASE MODULES & CONFIG
+// ========================================
 import { 
-  getAuth,
   signInAnonymously,
   onAuthStateChanged,
   signOut
 } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+
 import { 
-  getFirestore,
   collection, 
   addDoc, 
   serverTimestamp, 
@@ -22,21 +23,31 @@ import {
   Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
 
-// Import config
-import { firebaseConfig } from '/firebase-config.js';
+// ✅ Import dari firebase-config.js
+import { 
+  auth, 
+  db, 
+  getCollectionPath,
+  COLLECTIONS,
+  isFirebaseInitialized 
+} from '/firebase-config.js';
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// ========================================
+// VERIFY FIREBASE
+// ========================================
+if (!isFirebaseInitialized()) {
+  console.error('❌ Firebase not initialized!');
+  alert('System error: Firebase not initialized');
+  throw new Error('Firebase not initialized');
+}
 
-console.log('✅ Firebase initialized');
+console.log('✅ Firebase verified in employee-app.js');
 
 // ========================================
 // CONFIG
 // ========================================
-const COLLECTION_NAME = 'attendance';
-const USE_ANONYMOUS_AUTH = true;
+const USE_ANONYMOUS_AUTH = true; // Set false untuk email/password auth
+const COLLECTION_NAME = getCollectionPath(); // Default 'attendance'
 
 // ========================================
 // DOM ELEMENTS
@@ -125,8 +136,15 @@ async function initAuth() {
           if (error.code === 'auth/admin-restricted-operation') {
             updateStatus('Anonymous auth tidak diaktifkan di Firebase Console', true);
             setTimeout(() => {
-              alert('PENTING: Enable Anonymous Authentication di Firebase Console → Authentication → Sign-in method');
-            }, 1000);
+              const message = 'PENTING:\n\n' +
+                            '1. Buka Firebase Console\n' +
+                            '2. Authentication → Sign-in method\n' +
+                            '3. Enable "Anonymous"\n' +
+                            '4. Save\n\n' +
+                            'Atau klik "Masuk sebagai Guest" di halaman login untuk menggunakan email/password.';
+              alert(message);
+              window.location.href = '/login.html';
+            }, 2000);
           }
         }
       } else {
@@ -160,14 +178,17 @@ async function checkLastAttendance(userId) {
         attendanceType = 'pulang';
         if (DOM.startBtn) {
           DOM.startBtn.textContent = 'Mulai Absen Pulang';
-          DOM.startBtn.className = 'btn-primary w-full bg-gradient-to-r from-yellow-500 to-orange-500';
+          DOM.startBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
         }
       }
     }
   } catch (error) {
     console.error('Check attendance error:', error);
     if (error.code === 'permission-denied') {
-      updateStatus('Error: Tidak ada permission. Cek Firestore Rules!', true);
+      updateStatus('⚠️ Error: Permission denied. Cek Firestore Rules!', true);
+      setTimeout(() => {
+        alert('Firestore Permission Denied!\n\nPastikan Firestore Rules sudah di-deploy:\n\nfirebase deploy --only firestore:rules');
+      }, 1000);
     }
   }
 }
@@ -272,12 +293,10 @@ async function startCamera() {
   try {
     updateStatus('Mengaktifkan kamera...');
     
-    // Stop existing stream
     if (streamInstance) {
       streamInstance.getTracks().forEach(track => track.stop());
     }
     
-    // Try multiple camera constraints with fallback
     const constraints = [
       { video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } },
       { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } },
@@ -341,7 +360,6 @@ function capturePhoto() {
   }
   
   try {
-    // Hidden canvas for data
     const ctx = DOM.canvasHidden.getContext('2d');
     DOM.canvasHidden.width = DOM.video.videoWidth || 640;
     DOM.canvasHidden.height = DOM.video.videoHeight || 480;
@@ -349,21 +367,18 @@ function capturePhoto() {
     
     attendanceData.photoBase64 = DOM.canvasHidden.toDataURL('image/jpeg', 0.7);
     
-    // Display canvas
     const ctxCapture = DOM.canvasCapture.getContext('2d');
     DOM.canvasCapture.width = DOM.video.videoWidth || 640;
     DOM.canvasCapture.height = DOM.video.videoHeight || 480;
     ctxCapture.drawImage(DOM.video, 0, 0);
     DOM.canvasCapture.style.display = 'block';
     
-    // Hide video
     DOM.video.style.display = 'none';
     if (streamInstance) {
       streamInstance.getTracks().forEach(track => track.stop());
       streamInstance = null;
     }
     
-    // Update UI
     DOM.captureBtn.classList.add('hidden');
     DOM.submitBtn.classList.remove('hidden');
     
@@ -415,15 +430,14 @@ async function submitAttendance() {
     
     updateStatus(`✅ Absensi ${attendanceType} berhasil disimpan!`);
     
-    // Update for next attendance
     if (attendanceType === 'masuk') {
       attendanceType = 'pulang';
       DOM.startBtn.textContent = 'Mulai Absen Pulang';
-      DOM.startBtn.className = 'btn-primary w-full bg-gradient-to-r from-yellow-500 to-orange-500';
+      DOM.startBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
     } else {
       attendanceType = 'masuk';
       DOM.startBtn.textContent = 'Mulai Absen Masuk';
-      DOM.startBtn.className = 'btn-primary w-full';
+      DOM.startBtn.style.background = '';
     }
     
     setTimeout(resetUI, 2000);
