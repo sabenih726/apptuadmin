@@ -117,7 +117,7 @@
       <!-- Menu Buttons -->
       <div class="space-y-3">
         
-        <!-- Employee Attendance - Now requires login -->
+        <!-- ✅ Employee Attendance - Fixed structure -->
         <a href="login.html?redirect=employee" 
            class="btn-3d w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-4 px-6 rounded-lg transition-all block">
           <div class="flex items-center justify-between">
@@ -132,7 +132,7 @@
           </div>
         </a>
         
-        <!-- Admin Dashboard -->
+        <!-- ✅ Admin Dashboard - Fixed structure -->
         <a href="login.html?logout=true&redirect=admin" 
            class="btn-3d w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-4 px-6 rounded-lg transition-all block">
           <div class="flex items-center justify-between">
@@ -146,22 +146,21 @@
             <i class="fas fa-chevron-right"></i>
           </div>
         </a>
-      </div>
-    </button>
         
-        <!-- Staff Login -->
+        <!-- ✅ Staff Login - Fixed structure -->
         <button onclick="goToLogin()" 
                 class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-all">
           <i class="fas fa-sign-in-alt mr-2"></i>
           Login dengan Email
         </button>
+        
       </div>
       
       <!-- Divider -->
       <div class="my-6 border-t border-gray-600"></div>
       
       <!-- Quick Links -->
-      <div class="grid grid-cols-3 gap-3 text-center">
+      <div class="grid grid-cols-2 gap-3 text-center">
         <a href="#" onclick="showHelp(); return false;" class="text-gray-300 hover:text-white text-sm transition">
           <i class="fas fa-question-circle block text-lg mb-1"></i>
           <span class="text-xs">Bantuan</span>
@@ -169,10 +168,6 @@
         <a href="#" onclick="showInfo(); return false;" class="text-gray-300 hover:text-white text-sm transition">
           <i class="fas fa-info-circle block text-lg mb-1"></i>
           <span class="text-xs">Info</span>
-        </a>
-        <a href="setup-admin.html" class="text-gray-300 hover:text-white text-sm transition">
-          <i class="fas fa-cog block text-lg mb-1"></i>
-          <span class="text-xs">Setup</span>
         </a>
       </div>
     </div>
@@ -219,6 +214,7 @@
           </p>
           <ol class="list-decimal list-inside ml-2 space-y-1 text-xs">
             <li>Klik "Absensi Karyawan"</li>
+            <li>Login dengan akun yang diberikan HR</li>
             <li>Izinkan akses kamera & lokasi</li>
             <li>Ambil foto selfie untuk verifikasi</li>
             <li>Submit absensi masuk/pulang</li>
@@ -233,9 +229,10 @@
           <ol class="list-decimal list-inside ml-2 space-y-1 text-xs">
             <li>Klik "Admin Dashboard"</li>
             <li>Login dengan akun admin</li>
+            <li>Kelola karyawan via "Kelola Karyawan"</li>
             <li>Monitor absensi real-time</li>
             <li>Lihat foto & lokasi karyawan</li>
-            <li>Hapus data jika diperlukan</li>
+            <li>Export atau hapus data jika diperlukan</li>
           </ol>
         </div>
         
@@ -248,6 +245,7 @@
             <li><kbd class="px-2 py-1 bg-gray-700 rounded">1</kbd> - Absensi Karyawan</li>
             <li><kbd class="px-2 py-1 bg-gray-700 rounded">2</kbd> - Admin Dashboard</li>
             <li><kbd class="px-2 py-1 bg-gray-700 rounded">?</kbd> - Help</li>
+            <li><kbd class="px-2 py-1 bg-gray-700 rounded">Esc</kbd> - Close Help</li>
           </ul>
         </div>
       </div>
@@ -304,7 +302,6 @@
     function updateClock() {
       const now = new Date();
       
-      // Time with milliseconds for smooth update
       const timeEl = document.getElementById('current-time');
       if (timeEl) {
         timeEl.textContent = now.toLocaleTimeString('id-ID', {
@@ -314,7 +311,6 @@
         });
       }
       
-      // Date
       const dateEl = document.getElementById('current-date');
       if (dateEl) {
         dateEl.textContent = now.toLocaleDateString('id-ID', {
@@ -326,19 +322,17 @@
       }
     }
     
-    // Update every second
     updateClock();
     setInterval(updateClock, 1000);
     
     // Navigation functions
     function goToEmployee() {
       console.log('➡️ Navigating to employee page...');
-      window.location.href = '/employee.html';
+      window.location.href = '/login.html?redirect=employee';
     }
     
     function goToAdmin() {
       console.log('➡️ Navigating to admin dashboard...');
-      // ✅ FIX: Force logout before going to login
       window.location.href = '/login.html?logout=true&redirect=admin';
     }
     
@@ -358,25 +352,29 @@
     
     function showInfo() {
       const info = `
-ApptU Admin System v2.0
+╔════════════════════════════════════════╗
+║   ApptU Admin System v2.0              ║
+╚════════════════════════════════════════╝
 
-Features:
-✓ Camera-based attendance
-✓ GPS location tracking
-✓ Real-time dashboard
-✓ Photo verification
-✓ Role-based access control
+✨ FEATURES:
+  ✓ Camera-based attendance
+  ✓ GPS location tracking
+  ✓ Real-time dashboard
+  ✓ Photo verification
+  ✓ Role-based access control
+  ✓ Employee management
 
-Technology Stack:
-• Firebase (Auth, Firestore, Hosting)
-• TailwindCSS
-• Vanilla JavaScript ES6+
+🛠️ TECHNOLOGY STACK:
+  • Firebase (Auth, Firestore, Hosting)
+  • TailwindCSS
+  • Vanilla JavaScript ES6+
 
-Contact:
-📧 support@apptu.com
-🌐 https://apptuadmin.web.app
+📧 CONTACT:
+  Email: support@apptu.com
+  Web: https://apptuadmin.web.app
 
-© 2024 ApptU Admin
+© 2024 ApptU Admin System
+Powered by Firebase
       `.trim();
       
       alert(info);
@@ -398,7 +396,7 @@ Contact:
     }
     
     checkWorkingHours();
-    setInterval(checkWorkingHours, 60000); // Update every minute
+    setInterval(checkWorkingHours, 60000);
     
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -415,11 +413,11 @@ Contact:
       }
     });
     
-    // Page load animation
+    // Page load
     document.addEventListener('DOMContentLoaded', () => {
       console.log('✅ Index page ready');
       
-      // Check online status
+      // Online/offline status
       window.addEventListener('online', () => {
         document.getElementById('system-status').textContent = 'System Online';
         document.getElementById('system-status').className = 'text-green-400';
@@ -437,11 +435,7 @@ Contact:
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      
       console.log('💡 PWA install available');
-      
-      // You can show an install button here
-      // For now, just log it
     });
   </script>
 </body>
