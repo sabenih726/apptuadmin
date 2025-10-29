@@ -2,7 +2,6 @@
 console.log('📊 Loading admin-app.js...');
 
 import {
-  signInAnonymously,
   onAuthStateChanged,
   signOut
 } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
@@ -16,19 +15,23 @@ import {
   onSnapshot,
   doc,
   deleteDoc,
-  getDoc,
   Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
 
+// Import dari firebase-config.js
 import { 
   auth, 
   db, 
   getCollectionPath,
   COLLECTIONS,
+  ROLES,
   isFirebaseInitialized,
-  getFirebaseInfo
+  getUserRole
 } from '/firebase-config.js';
 
+// ========================================
+// VERIFY FIREBASE
+// ========================================
 if (!isFirebaseInitialized()) {
   console.error('❌ Firebase not initialized!');
   alert('System error: Firebase not initialized');
@@ -37,9 +40,15 @@ if (!isFirebaseInitialized()) {
 
 console.log('✅ Firebase verified in admin-app.js');
 
+// ========================================
+// CONFIG
+// ========================================
 const COLLECTION_NAME = getCollectionPath();
 const MAX_RECORDS = 100;
 
+// ========================================
+// DOM ELEMENTS
+// ========================================
 const DOM = {
   tbody: document.getElementById('attendance-table-body'),
   verifPhoto: document.getElementById('verification-photo'),
@@ -58,47 +67,38 @@ const DOM = {
   refreshBtn: document.getElementById('refresh-btn')
 };
 
+// ========================================
+// STATE
+// ========================================
 let allRecords = [];
 let unsubscribeSnapshot = null;
 let currentUserRole = null;
 
 // ========================================
-// ✅ CHECK IF USER IS ADMIN
-// ========================================
-async function checkAdminRole(userId) {
-  try {
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    
-    if (!userDoc.exists()) {
-      console.warn('⚠️ User document not found');
-      return false;
-    }
-    
-    const userData = userDoc.data();
-    return userData.role === 'admin';
-    
-  } catch (error) {
-    console.error('❌ Error checking admin role:', error);
-    return false;
-  }
-}
-
-// ========================================
-// ✅ SHOW UNAUTHORIZED PAGE
+// SHOW UNAUTHORIZED PAGE
 // ========================================
 function showUnauthorized() {
   document.body.innerHTML = `
     <div class="min-h-screen flex items-center justify-center bg-gray-900 p-4">
-      <div class="text-center">
-        <i class="fas fa-lock text-6xl text-red-500 mb-4"></i>
-        <h1 class="text-3xl font-bold text-white mb-4">Access Denied</h1>
-        <p class="text-gray-400 mb-8">You don't have permission to access this page.</p>
-        <p class="text-gray-500 mb-8">Only admin users can access the dashboard.</p>
-        <div class="space-x-4">
-          <a href="/login.html" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+      <div class="text-center max-w-md">
+        <div class="mb-8">
+          <i class="fas fa-shield-alt text-8xl text-red-500 mb-4"></i>
+        </div>
+        <h1 class="text-4xl font-bold text-white mb-4">Access Denied</h1>
+        <p class="text-gray-400 text-lg mb-4">You don't have permission to access this page.</p>
+        <div class="bg-red-900 bg-opacity-20 border border-red-500 rounded-lg p-4 mb-8">
+          <p class="text-red-300 text-sm">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            Only admin users can access the dashboard.
+          </p>
+        </div>
+        <div class="space-y-3">
+          <a href="/login.html" class="block bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition">
+            <i class="fas fa-sign-in-alt mr-2"></i>
             Go to Login
           </a>
-          <a href="/employee.html" class="inline-block bg-gray-700 text-white px-6 py-3 rounded-lg hover:bg-gray-600">
+          <a href="/employee.html" class="block bg-gray-700 text-white px-8 py-3 rounded-lg hover:bg-gray-600 transition">
+            <i class="fas fa-user mr-2"></i>
             Employee Page
           </a>
         </div>
@@ -108,41 +108,97 @@ function showUnauthorized() {
 }
 
 // ========================================
-// AUTH
+// SHOW LOADING PAGE
+// ========================================
+function showLoading() {
+  if (DOM.tbody) {
+    DOM.tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center py-12">
+          <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+          <p class="text-gray-400">Verifying admin access...</p>
+        </td>
+      </tr>
+    `;
+  }
+}
+
+// ========================================
+// AUTH WITH ROLE CHECK
 // ========================================
 async function initAuth() {
+  showLoading();
+  
   onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      console.log('✅ User logged in:', user.email || user.uid);
+    if (!user) {
+      console.log('❌ User not logged in. Redirecting...');
+      window.location.href = '/login.html';
+      return;
+    }
+    
+    console.log('✅ User logged in:', user.email || user.uid);
+    
+    try {
+      // Check if user is admin (will auto-create if missing)
+      const userRole = await getUserRole(user.uid, true);
       
-      // ✅ CHECK IF ADMIN
-      const isAdmin = await checkAdminRole(user.uid);
+      console.log('👤 User role:', userRole);
       
-      if (!isAdmin) {
+      if (userRole !== ROLES.ADMIN) {
         console.warn('⚠️ User is not admin. Access denied.');
         showUnauthorized();
         return;
       }
       
-      currentUserRole = 'admin';
+      currentUserRole = userRole;
       console.log('✅ Admin access granted');
       
+      // Update UI
       if (DOM.userInfo) {
-        DOM.userInfo.textContent = user.email || `Admin: ${user.uid.slice(-6)}`;
+        const userName = user.email || user.displayName || `Admin-${user.uid.slice(-6)}`;
+        DOM.userInfo.innerHTML = `
+          <i class="fas fa-user-shield mr-2"></i>
+          ${userName}
+        `;
       }
       
+      // Enable logout button
+      if (DOM.logoutBtn) {
+        DOM.logoutBtn.disabled = false;
+      }
+      
+      // Load data
       loadData();
       
-    } else {
-      // Not logged in - redirect to login
-      console.log('❌ User not logged in. Redirecting...');
-      window.location.href = '/login.html';
+    } catch (error) {
+      console.error('❌ Role check error:', error);
+      
+      if (DOM.tbody) {
+        DOM.tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center py-12">
+              <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+              <p class="text-red-400 mb-2">Error verifying admin access</p>
+              <p class="text-gray-500 text-sm">${error.message}</p>
+              <div class="mt-4 space-x-2">
+                <button onclick="location.reload()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                  Retry
+                </button>
+                <a href="/fix-user.html" class="inline-block bg-yellow-600 text-white px-6 py-2 rounded hover:bg-yellow-700">
+                  Fix Account
+                </a>
+              </div>
+            </td>
+          </tr>
+        `;
+      }
     }
   });
 }
 
-// ... (rest of the code tetap sama)
-
+// ========================================
+// LOAD DATA
+// ========================================
 function loadData() {
   try {
     const today = new Date();
@@ -164,6 +220,7 @@ function loadData() {
         }));
         
         console.log(`📊 Loaded ${allRecords.length} records`);
+        
         updateStats();
         renderTable();
       },
@@ -171,7 +228,7 @@ function loadData() {
         console.error('❌ Snapshot error:', error);
         
         if (error.code === 'permission-denied') {
-          showError('⚠️ Permission denied. Deploy Firestore rules dengan role admin!');
+          showError('⚠️ Permission denied. Cek Firestore rules!\n\nRun: firebase deploy --only firestore:rules');
         } else {
           showError('Error loading data: ' + error.message);
         }
@@ -184,6 +241,9 @@ function loadData() {
   }
 }
 
+// ========================================
+// UPDATE STATS
+// ========================================
 function updateStats() {
   const totalMasuk = allRecords.filter(r => r.type === 'masuk').length;
   const totalPulang = allRecords.filter(r => r.type === 'pulang').length;
@@ -193,15 +253,19 @@ function updateStats() {
   if (DOM.totalPulang) DOM.totalPulang.textContent = totalPulang;
 }
 
+// ========================================
+// RENDER TABLE
+// ========================================
 function renderTable() {
   if (!DOM.tbody) return;
   
   if (allRecords.length === 0) {
     DOM.tbody.innerHTML = `
       <tr>
-        <td colspan="5" class="text-center py-8 text-gray-500">
-          <i class="fas fa-inbox text-3xl mb-2"></i>
-          <p>Belum ada data absensi hari ini</p>
+        <td colspan="5" class="text-center py-12 text-gray-500">
+          <i class="fas fa-inbox text-5xl mb-4 opacity-30"></i>
+          <p class="text-lg">Belum ada data absensi hari ini</p>
+          <p class="text-sm mt-2">Data akan muncul setelah karyawan melakukan absensi</p>
         </td>
       </tr>
     `;
@@ -213,7 +277,7 @@ function renderTable() {
     const typeIcon = r.type === 'masuk' ? 'fa-sign-in-alt' : 'fa-sign-out-alt';
     
     return `
-      <tr class="table-row border-b border-gray-800 cursor-pointer transition" onclick="showDetail('${r.id}')">
+      <tr class="table-row border-b border-gray-800 cursor-pointer transition hover:bg-gray-800" onclick="showDetail('${r.id}')">
         <td class="p-3 text-sm">
           ${r.timestamp.toLocaleString('id-ID', { 
             day: '2-digit', 
@@ -233,9 +297,9 @@ function renderTable() {
           <i class="fas fa-user mr-1 text-gray-500"></i>
           ${r.userEmail || r.userId?.slice(-8) || 'Guest'}
         </td>
-        <td class="p-3 text-sm text-gray-400">
+        <td class="p-3 text-sm text-gray-400" title="${r.locationName || 'Unknown'}">
           <i class="fas fa-map-marker-alt mr-1"></i>
-          ${truncate(r.locationName || 'Unknown', 20)}
+          ${truncate(r.locationName || 'Unknown', 30)}
         </td>
         <td class="p-3">
           <button 
@@ -251,6 +315,9 @@ function renderTable() {
   }).join('');
 }
 
+// ========================================
+// SHOW DETAIL
+// ========================================
 window.showDetail = function(id) {
   const record = allRecords.find(r => r.id === id);
   if (!record) return;
@@ -280,25 +347,46 @@ window.showDetail = function(id) {
     DOM.verifUser.textContent = record.userEmail || record.userId?.slice(-8) || 'Anonymous';
   }
   
+  if (DOM.verifCoords) {
+    const locationName = record.locationName || 'Unknown';
+    const hasCoordinates = record.coordinates && record.coordinates.latitude;
+    
+    DOM.verifCoords.innerHTML = `
+      <div class="space-y-2">
+        <div class="flex items-start">
+          <i class="fas fa-map-marker-alt mr-2 mt-1 text-blue-400"></i>
+          <div class="flex-1">
+            <p class="text-white font-semibold text-sm">Alamat:</p>
+            <p class="text-gray-300 text-xs mt-1">${locationName}</p>
+          </div>
+        </div>
+        
+        ${hasCoordinates ? `
+        <div class="flex items-center text-xs text-gray-500">
+          <i class="fas fa-crosshairs mr-2"></i>
+          <span>${record.coordinates.latitude.toFixed(6)}, ${record.coordinates.longitude.toFixed(6)}</span>
+        </div>
+        ` : ''}
+      </div>
+    `;
+  }
+  
   if (record.coordinates && record.coordinates.latitude) {
     const { latitude, longitude } = record.coordinates;
-    if (DOM.verifCoords) {
-      DOM.verifCoords.textContent = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-    }
     if (DOM.verifMap) {
       DOM.verifMap.href = `https://maps.google.com/?q=${latitude},${longitude}`;
       DOM.verifMap.classList.remove('hidden');
     }
   } else {
-    if (DOM.verifCoords) {
-      DOM.verifCoords.textContent = 'Tidak ada data lokasi';
-    }
     if (DOM.verifMap) {
       DOM.verifMap.classList.add('hidden');
     }
   }
 };
 
+// ========================================
+// DELETE RECORD
+// ========================================
 window.deleteRecord = async function(id) {
   if (!confirm('Hapus record ini?\nTindakan ini tidak dapat dibatalkan.')) return;
   
@@ -318,64 +406,10 @@ window.deleteRecord = async function(id) {
   }
 };
 
-async function logout() {
-  if (!confirm('Logout dari admin panel?')) return;
-  
-  try {
-    if (unsubscribeSnapshot) {
-      unsubscribeSnapshot();
-    }
-    await signOut(auth);
-    window.location.href = '/login.html';
-  } catch (error) {
-    console.error('❌ Logout error:', error);
-    alert('Logout failed: ' + error.message);
-  }
-}
-
-function refreshData() {
-  if (DOM.refreshBtn) {
-    DOM.refreshBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin mr-1"></i> Refreshing...';
-  }
-  
-  setTimeout(() => {
-    if (DOM.refreshBtn) {
-      DOM.refreshBtn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Refresh';
-    }
-  }, 1000);
-}
-
-function truncate(str, maxLength) {
-  if (!str) return '';
-  return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
-}
-
-function showError(message) {
-  if (DOM.tbody) {
-    DOM.tbody.innerHTML = `
-      <tr>
-        <td colspan="5" class="text-center py-8 text-red-400">
-          <i class="fas fa-exclamation-triangle text-3xl mb-2"></i>
-          <p>${message}</p>
-        </td>
-      </tr>
-    `;
-  }
-}
-
-DOM.logoutBtn?.addEventListener('click', logout);
-DOM.refreshBtn?.addEventListener('click', refreshData);
-
-window.addEventListener('beforeunload', () => {
-  if (unsubscribeSnapshot) {
-    unsubscribeSnapshot();
-  }
-});
-
 // ========================================
-// LOGOUT
+// LOGOUT (SINGLE DECLARATION ONLY)
 // ========================================
-async function logout() {
+async function handleLogout() {
   if (!confirm('Logout dari admin panel?')) return;
   
   try {
@@ -432,17 +466,9 @@ function showError(message) {
 }
 
 // ========================================
-// ✅ EXPOSE FUNCTIONS TO GLOBAL SCOPE
+// EVENT LISTENERS (SINGLE REGISTRATION ONLY)
 // ========================================
-window.logout = logout;
-window.refreshData = refreshData;
-window.showDetail = showDetail;
-window.deleteRecord = deleteRecord;
-
-// ========================================
-// EVENT LISTENERS
-// ========================================
-DOM.logoutBtn?.addEventListener('click', logout);
+DOM.logoutBtn?.addEventListener('click', handleLogout);
 DOM.refreshBtn?.addEventListener('click', refreshData);
 
 window.addEventListener('beforeunload', () => {
