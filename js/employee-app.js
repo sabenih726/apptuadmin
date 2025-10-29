@@ -46,8 +46,8 @@ console.log('✅ Firebase verified in employee-app.js');
 // ========================================
 // CONFIG
 // ========================================
-const USE_ANONYMOUS_AUTH = true; // Set false untuk email/password auth
-const COLLECTION_NAME = getCollectionPath(); // Default 'attendance'
+const USE_ANONYMOUS_AUTH = false; // ✅ Changed from true to false
+const COLLECTION_NAME = getCollectionPath();
 
 // ========================================
 // DOM ELEMENTS
@@ -110,10 +110,11 @@ async function initAuth() {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
-      const displayName = user.email || `User-${user.uid.slice(-6)}`;
+      const displayName = user.email || user.displayName || `User-${user.uid.slice(-6)}`;
       if (DOM.userStatus) DOM.userStatus.textContent = displayName;
       
-      if (!USE_ANONYMOUS_AUTH && DOM.logoutBtn) {
+      // ✅ Always show logout button
+      if (DOM.logoutBtn) {
         DOM.logoutBtn.classList.remove('hidden');
       }
       
@@ -124,32 +125,13 @@ async function initAuth() {
       loadUserHistory(user.uid);
       
     } else {
-      if (USE_ANONYMOUS_AUTH) {
-        try {
-          updateStatus('Login otomatis...');
-          const result = await signInAnonymously(auth);
-          console.log('✅ Anonymous login:', result.user.uid);
-        } catch (error) {
-          console.error('❌ Auth error:', error);
-          updateStatus('Error: ' + error.message, true);
-          
-          if (error.code === 'auth/admin-restricted-operation') {
-            updateStatus('Anonymous auth tidak diaktifkan di Firebase Console', true);
-            setTimeout(() => {
-              const message = 'PENTING:\n\n' +
-                            '1. Buka Firebase Console\n' +
-                            '2. Authentication → Sign-in method\n' +
-                            '3. Enable "Anonymous"\n' +
-                            '4. Save\n\n' +
-                            'Atau klik "Masuk sebagai Guest" di halaman login untuk menggunakan email/password.';
-              alert(message);
-              window.location.href = '/login.html';
-            }, 2000);
-          }
-        }
-      } else {
-        window.location.href = '/login.html';
-      }
+      // ✅ Redirect to login if not authenticated
+      console.log('❌ User not logged in. Redirecting to login...');
+      updateStatus('Redirecting to login...', false);
+      
+      setTimeout(() => {
+        window.location.href = '/login.html?redirect=employee';
+      }, 1000);
     }
   });
 }
