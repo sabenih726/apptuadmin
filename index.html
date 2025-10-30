@@ -3,25 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ATTENDANCE TU ADMIN</title>
+  
+  <!-- Primary Meta Tags -->
+  <title>ATTENDANCE TU ADMIN - Digital Attendance System</title>
+  <meta name="title" content="ATTENDANCE TU ADMIN - Digital Attendance System">
+  <meta name="description" content="Modern attendance system with GPS tracking, face recognition, and real-time monitoring for efficient workforce management.">
   
   <!-- PWA Manifest -->
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="/manifest.json?v=2">
   <meta name="theme-color" content="#1e3a8a">
   
-  <!-- Icons - gunakan icon-192 untuk semua -->
-  <link rel="icon" type="image/png" href="/assets/icons/icon-192.png">
-  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+  <!-- ✅ Favicons - Path BENAR -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png?v=2">
+  <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icon-512.png?v=2">
+  <link rel="shortcut icon" href="/assets/icons/icon-192.png?v=2">
+  
+  <!-- ✅ Apple Touch Icon -->
+  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png?v=2">
+  <link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192.png?v=2">
+  <link rel="apple-touch-icon" sizes="512x512" href="/assets/icons/icon-512.png?v=2">
   
   <!-- Apple PWA Meta -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="ApptU Admin">
+  <meta name="mobile-web-app-capable" content="yes">
   
-  <!-- Microsoft Tile -->
+  <!-- Microsoft Tiles -->
   <meta name="msapplication-TileColor" content="#1e3a8a">
-  <meta name="msapplication-TileImage" content="/assets/icons/icon-512.png">
-  <meta name="msapplication-config" content="/browserconfig.xml">
+  <meta name="msapplication-TileImage" content="/assets/icons/icon-512.png?v=2">
   
   <!-- TailwindCSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -64,6 +74,46 @@
       to { opacity: 1; transform: translateY(0); }
     }
     
+    /* ✅ Logo Styles */
+    .logo-container {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto;
+    }
+    
+    .logo-main {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3));
+      transition: transform 0.3s ease;
+    }
+    
+    .logo-main:hover {
+      transform: scale(1.05);
+    }
+    
+    .logo-fallback {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    }
+    
+    .logo-pulse {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.9; transform: scale(1.05); }
+    }
+    
     /* PWA Install Banner */
     .install-banner {
       animation: slideUp 0.5s ease-out;
@@ -73,16 +123,6 @@
       from { transform: translateY(100%); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
-    
-    /* Logo pulse animation */
-    .logo-pulse {
-      animation: logoPulse 2s infinite;
-    }
-    
-    @keyframes logoPulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-    }
   </style>
 </head>
 
@@ -91,10 +131,18 @@
   <!-- Main Container -->
   <div class="w-full max-w-md fade-in">
     
-    <!-- Company Logo/Header -->
+    <!-- ✅ LOGO & HEADER SECTION -->
     <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4 shadow-2xl logo-pulse">
-        <i class="fas fa-user-clock text-4xl text-white"></i>
+      
+      <!-- Company Logo -->
+      <div class="logo-container mb-4">
+        <img 
+          id="company-logo"
+          src="/assets/logo.trakindo.png" 
+          alt="Trakindo Logo" 
+          class="logo-main"
+          onerror="handleLogoError()"
+        >
       </div>
       
       <h1 class="text-3xl font-bold text-white mb-2">
@@ -216,8 +264,6 @@
         <i class="fas fa-database mr-1"></i>
         Firebase Project: <span class="text-gray-300 font-mono">apptuadmin</span>
       </p>
-      
-      <!-- PWA Status -->
       <p class="mt-2 text-xs" id="pwa-status">
         <i class="fas fa-mobile-alt mr-1"></i>
         <span class="text-gray-300">PWA Ready</span>
@@ -227,14 +273,12 @@
     <!-- Footer -->
     <div class="text-center mt-6 text-gray-500 text-xs">
       <p>&copy; 2025 Facility Maintenance Services</p>
-      <p class="mt-1">
-        Powered by General Service TU
-      </p>
+      <p class="mt-1">Powered by General Service TU</p>
     </div>
   </div>
   
   <!-- ✅ PWA Install Banner -->
-  <div id="install-banner" class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-2xl hidden install-banner">
+  <div id="install-banner" class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-2xl hidden install-banner z-50">
     <div class="max-w-md mx-auto flex items-center justify-between">
       <div class="flex items-center">
         <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center mr-3">
@@ -319,7 +363,9 @@
     </div>
   </div>
   
-  <!-- JavaScript -->
+  <!-- ========================================
+       FIREBASE & APP SCRIPTS
+       ======================================== -->
   <script type="module">
     import { auth, getCurrentUserWithRole } from '/firebase-config.js';
     import { signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
@@ -361,6 +407,34 @@
   
   <script>
     // ========================================
+    // LOGO HANDLER
+    // ========================================
+    function handleLogoError() {
+      console.warn('⚠️ Logo /assets/logo.trakindo.png not found, using fallback');
+      
+      const logoElement = document.getElementById('company-logo');
+      
+      // Replace with fallback logo (icon version)
+      logoElement.outerHTML = `
+        <div class="logo-fallback logo-pulse">
+          <i class="fas fa-building text-5xl text-white"></i>
+        </div>
+      `;
+    }
+    
+    // Preload logo
+    window.addEventListener('DOMContentLoaded', () => {
+      const logo = new Image();
+      logo.src = '/assets/logo.trakindo.png';
+      logo.onload = () => {
+        console.log('✅ Company logo loaded successfully');
+      };
+      logo.onerror = () => {
+        console.warn('⚠️ Company logo failed to load - using fallback');
+      };
+    });
+    
+    // ========================================
     // PWA SERVICE WORKER REGISTRATION
     // ========================================
     if ('serviceWorker' in navigator) {
@@ -369,7 +443,7 @@
           .then(registration => {
             console.log('✅ Service Worker registered:', registration.scope);
             document.getElementById('pwa-status').innerHTML = 
-              '<i class="fas fa-check-circle mr-1 text-green-400"></i><span class="text-green-400">PWA Installed</span>';
+              '<i class="fas fa-check-circle mr-1 text-green-400"></i><span class="text-green-400">PWA Active</span>';
           })
           .catch(error => {
             console.error('❌ Service Worker registration failed:', error);
@@ -387,13 +461,11 @@
     const installBtn = document.getElementById('install-btn');
     const dismissBtn = document.getElementById('dismiss-install-btn');
     
-    // Capture install prompt event
     window.addEventListener('beforeinstallprompt', (e) => {
       console.log('💡 PWA install prompt available');
       e.preventDefault();
       deferredPrompt = e;
       
-      // Check if user dismissed before
       const dismissed = localStorage.getItem('pwa-install-dismissed');
       const dismissedTime = parseInt(dismissed || '0');
       const now = Date.now();
@@ -402,57 +474,36 @@
       if (!dismissed || (now - dismissedTime) > 7 * 24 * 60 * 60 * 1000) {
         setTimeout(() => {
           installBanner.classList.remove('hidden');
-        }, 3000); // Show after 3 seconds
+        }, 3000);
       }
     });
     
-    // Install button click
     installBtn?.addEventListener('click', async () => {
-      if (!deferredPrompt) {
-        console.warn('Install prompt not available');
-        return;
-      }
+      if (!deferredPrompt) return;
       
       installBanner.classList.add('hidden');
       deferredPrompt.prompt();
       
       const { outcome } = await deferredPrompt.userChoice;
-      console.log(`User response to install prompt: ${outcome}`);
-      
-      if (outcome === 'accepted') {
-        console.log('✅ PWA installed');
-      } else {
-        console.log('❌ PWA install declined');
-      }
+      console.log(`User response: ${outcome}`);
       
       deferredPrompt = null;
     });
     
-    // Dismiss button click
     dismissBtn?.addEventListener('click', () => {
       installBanner.classList.add('hidden');
       localStorage.setItem('pwa-install-dismissed', Date.now().toString());
-      console.log('Install banner dismissed');
     });
     
-    // Detect if app is installed
     window.addEventListener('appinstalled', () => {
-      console.log('✅ PWA has been installed');
+      console.log('✅ PWA installed');
       installBanner.classList.add('hidden');
-      deferredPrompt = null;
-      
-      // Update status
       document.getElementById('pwa-status').innerHTML = 
         '<i class="fas fa-check-circle mr-1 text-green-400"></i><span class="text-green-400">PWA Installed</span>';
     });
     
     // Check if running as PWA
-    function isPWA() {
-      return window.matchMedia('(display-mode: standalone)').matches || 
-             window.navigator.standalone === true;
-    }
-    
-    if (isPWA()) {
+    if (window.matchMedia('(display-mode: standalone)').matches) {
       console.log('✅ Running as PWA');
       document.getElementById('pwa-status').innerHTML = 
         '<i class="fas fa-mobile-alt mr-1 text-blue-400"></i><span class="text-blue-400">Running as App</span>';
@@ -520,6 +571,7 @@
       const info = `
 ╔════════════════════════════════════════╗
 ║   ApptU Admin System v2.0              ║
+║   Trakindo Attendance System           ║
 ╚════════════════════════════════════════╝
 
 ✨ FEATURES:
@@ -539,7 +591,7 @@
   • Service Workers (Offline Support)
 
 📧 CONTACT:
-  Email: support@admin.com
+  Email: support@trakindo.com
   Web: https://apptuadmin.web.app
 
 © 2025 Facility Maintenance Services
@@ -601,7 +653,7 @@
     });
     
     // ========================================
-    // PAGE LOAD
+    // PAGE READY
     // ========================================
     document.addEventListener('DOMContentLoaded', () => {
       console.log('✅ Index page ready');
