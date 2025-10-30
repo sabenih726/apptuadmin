@@ -3,11 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ATTENDANCE TU ADMIN</title>
   
-  <!-- Manifest & PWA -->
+  <!-- Primary Meta Tags -->
+  <title>ATTENDANCE TU ADMIN - Digital Attendance System</title>
+  <meta name="title" content="ATTENDANCE TU ADMIN - Digital Attendance System">
+  <meta name="description" content="Modern attendance system with GPS tracking, face recognition, and real-time monitoring for efficient workforce management.">
+  
+  <!-- PWA Primary Meta Tags -->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1e3a8a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ApptU Admin">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- Icons for PWA -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-120.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/icons/icon-76.png">
+  
+  <!-- Microsoft Tiles -->
+  <meta name="msapplication-TileColor" content="#1e3a8a">
+  <meta name="msapplication-TileImage" content="/icons/icon-144.png">
+  <meta name="msapplication-config" content="/browserconfig.xml">
   
   <!-- TailwindCSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -49,6 +70,26 @@
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    
+    /* PWA Install Banner */
+    .install-banner {
+      animation: slideUp 0.5s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* Logo pulse animation */
+    .logo-pulse {
+      animation: logoPulse 2s infinite;
+    }
+    
+    @keyframes logoPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
   </style>
 </head>
 
@@ -59,7 +100,7 @@
     
     <!-- Company Logo/Header -->
     <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4 shadow-2xl">
+      <div class="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4 shadow-2xl logo-pulse">
         <i class="fas fa-user-clock text-4xl text-white"></i>
       </div>
       
@@ -117,7 +158,7 @@
       <!-- Menu Buttons -->
       <div class="space-y-3">
         
-        <!-- ✅ Employee Attendance - Fixed structure -->
+        <!-- Employee Attendance -->
         <a href="login.html?redirect=employee" 
            class="btn-3d w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-4 px-6 rounded-lg transition-all block">
           <div class="flex items-center justify-between">
@@ -132,7 +173,7 @@
           </div>
         </a>
         
-        <!-- ✅ Admin Dashboard - Fixed structure -->
+        <!-- Admin Dashboard -->
         <a href="login.html?logout=true&redirect=admin" 
            class="btn-3d w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-4 px-6 rounded-lg transition-all block">
           <div class="flex items-center justify-between">
@@ -147,7 +188,7 @@
           </div>
         </a>
         
-        <!-- ✅ Staff Login - Fixed structure -->
+        <!-- Staff Login -->
         <button onclick="goToLogin()" 
                 class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-all">
           <i class="fas fa-sign-in-alt mr-2"></i>
@@ -182,14 +223,43 @@
         <i class="fas fa-database mr-1"></i>
         Firebase Project: <span class="text-gray-300 font-mono">apptuadmin</span>
       </p>
+      
+      <!-- PWA Status -->
+      <p class="mt-2 text-xs" id="pwa-status">
+        <i class="fas fa-mobile-alt mr-1"></i>
+        <span class="text-gray-300">PWA Ready</span>
+      </p>
     </div>
     
     <!-- Footer -->
     <div class="text-center mt-6 text-gray-500 text-xs">
-      <p>&copy; © 2025 Facility Maintenence Services</p>
+      <p>&copy; 2025 Facility Maintenance Services</p>
       <p class="mt-1">
         Powered by General Service TU
       </p>
+    </div>
+  </div>
+  
+  <!-- ✅ PWA Install Banner -->
+  <div id="install-banner" class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-2xl hidden install-banner">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div class="flex items-center">
+        <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center mr-3">
+          <i class="fas fa-download text-blue-600 text-xl"></i>
+        </div>
+        <div>
+          <p class="font-semibold text-sm">Install ApptU App</p>
+          <p class="text-xs opacity-90">Add to home screen for quick access</p>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button id="install-btn" class="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition">
+          Install
+        </button>
+        <button id="dismiss-install-btn" class="text-white p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
     </div>
   </div>
   
@@ -213,7 +283,7 @@
             Untuk Karyawan
           </p>
           <ol class="list-decimal list-inside ml-2 space-y-1 text-xs">
-            <li>Klik "Absensi Karyawan"</li>
+            <li>Klik "Employee Attendance"</li>
             <li>Login dengan akun yang diberikan HR</li>
             <li>Izinkan akses kamera & lokasi</li>
             <li>Ambil foto selfie untuk verifikasi</li>
@@ -232,20 +302,19 @@
             <li>Kelola karyawan via "Kelola Karyawan"</li>
             <li>Monitor absensi real-time</li>
             <li>Lihat foto & lokasi karyawan</li>
-            <li>Export atau hapus data jika diperlukan</li>
+            <li>Export data ke Excel</li>
           </ol>
         </div>
         
-        <div class="bg-gray-800 p-3 rounded-lg">
+        <div class="bg-green-900 bg-opacity-20 p-3 rounded-lg">
           <p class="font-semibold text-white flex items-center mb-2">
-            <i class="fas fa-keyboard mr-2 text-gray-400"></i>
-            Keyboard Shortcuts
+            <i class="fas fa-mobile-alt mr-2 text-green-400"></i>
+            Install Aplikasi (PWA)
           </p>
-          <ul class="text-xs space-y-1">
-            <li><kbd class="px-2 py-1 bg-gray-700 rounded">1</kbd> - Absensi Karyawan</li>
-            <li><kbd class="px-2 py-1 bg-gray-700 rounded">2</kbd> - Admin Dashboard</li>
-            <li><kbd class="px-2 py-1 bg-gray-700 rounded">?</kbd> - Help</li>
-            <li><kbd class="px-2 py-1 bg-gray-700 rounded">Esc</kbd> - Close Help</li>
+          <ul class="text-xs space-y-1 ml-2">
+            <li>• <strong>Desktop:</strong> Klik icon install di address bar</li>
+            <li>• <strong>Android:</strong> Menu → Add to Home Screen</li>
+            <li>• <strong>iOS:</strong> Share → Add to Home Screen</li>
           </ul>
         </div>
       </div>
@@ -298,7 +367,107 @@
   </script>
   
   <script>
-    // Update clock
+    // ========================================
+    // PWA SERVICE WORKER REGISTRATION
+    // ========================================
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(registration => {
+            console.log('✅ Service Worker registered:', registration.scope);
+            document.getElementById('pwa-status').innerHTML = 
+              '<i class="fas fa-check-circle mr-1 text-green-400"></i><span class="text-green-400">PWA Installed</span>';
+          })
+          .catch(error => {
+            console.error('❌ Service Worker registration failed:', error);
+            document.getElementById('pwa-status').innerHTML = 
+              '<i class="fas fa-exclamation-triangle mr-1 text-yellow-400"></i><span class="text-yellow-400">PWA Error</span>';
+          });
+      });
+    }
+    
+    // ========================================
+    // PWA INSTALL PROMPT
+    // ========================================
+    let deferredPrompt;
+    const installBanner = document.getElementById('install-banner');
+    const installBtn = document.getElementById('install-btn');
+    const dismissBtn = document.getElementById('dismiss-install-btn');
+    
+    // Capture install prompt event
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('💡 PWA install prompt available');
+      e.preventDefault();
+      deferredPrompt = e;
+      
+      // Check if user dismissed before
+      const dismissed = localStorage.getItem('pwa-install-dismissed');
+      const dismissedTime = parseInt(dismissed || '0');
+      const now = Date.now();
+      
+      // Show banner if not dismissed in last 7 days
+      if (!dismissed || (now - dismissedTime) > 7 * 24 * 60 * 60 * 1000) {
+        setTimeout(() => {
+          installBanner.classList.remove('hidden');
+        }, 3000); // Show after 3 seconds
+      }
+    });
+    
+    // Install button click
+    installBtn?.addEventListener('click', async () => {
+      if (!deferredPrompt) {
+        console.warn('Install prompt not available');
+        return;
+      }
+      
+      installBanner.classList.add('hidden');
+      deferredPrompt.prompt();
+      
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to install prompt: ${outcome}`);
+      
+      if (outcome === 'accepted') {
+        console.log('✅ PWA installed');
+      } else {
+        console.log('❌ PWA install declined');
+      }
+      
+      deferredPrompt = null;
+    });
+    
+    // Dismiss button click
+    dismissBtn?.addEventListener('click', () => {
+      installBanner.classList.add('hidden');
+      localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+      console.log('Install banner dismissed');
+    });
+    
+    // Detect if app is installed
+    window.addEventListener('appinstalled', () => {
+      console.log('✅ PWA has been installed');
+      installBanner.classList.add('hidden');
+      deferredPrompt = null;
+      
+      // Update status
+      document.getElementById('pwa-status').innerHTML = 
+        '<i class="fas fa-check-circle mr-1 text-green-400"></i><span class="text-green-400">PWA Installed</span>';
+    });
+    
+    // Check if running as PWA
+    function isPWA() {
+      return window.matchMedia('(display-mode: standalone)').matches || 
+             window.navigator.standalone === true;
+    }
+    
+    if (isPWA()) {
+      console.log('✅ Running as PWA');
+      document.getElementById('pwa-status').innerHTML = 
+        '<i class="fas fa-mobile-alt mr-1 text-blue-400"></i><span class="text-blue-400">Running as App</span>';
+    }
+    
+    // ========================================
+    // CLOCK & DATE
+    // ========================================
     function updateClock() {
       const now = new Date();
       
@@ -325,7 +494,9 @@
     updateClock();
     setInterval(updateClock, 1000);
     
-    // Navigation functions
+    // ========================================
+    // NAVIGATION FUNCTIONS
+    // ========================================
     function goToEmployee() {
       console.log('➡️ Navigating to employee page...');
       window.location.href = '/login.html?redirect=employee';
@@ -341,7 +512,9 @@
       window.location.href = '/login.html';
     }
     
-    // Modal functions
+    // ========================================
+    // MODAL FUNCTIONS
+    // ========================================
     function showHelp() {
       document.getElementById('help-modal').classList.remove('hidden');
     }
@@ -363,23 +536,28 @@
   ✓ Photo verification
   ✓ Role-based access control
   ✓ Employee management
+  ✓ Excel export reports
+  ✓ Progressive Web App (PWA)
 
 🛠️ TECHNOLOGY STACK:
   • Firebase (Auth, Firestore, Hosting)
   • TailwindCSS
   • Vanilla JavaScript ES6+
+  • Service Workers (Offline Support)
 
 📧 CONTACT:
   Email: support@admin.com
   Web: https://apptuadmin.web.app
 
-© 2025 Facility Maintenence Services
+© 2025 Facility Maintenance Services
       `.trim();
       
       alert(info);
     }
     
-    // Check working hours
+    // ========================================
+    // SYSTEM STATUS
+    // ========================================
     function checkWorkingHours() {
       const now = new Date();
       const hour = now.getHours();
@@ -397,7 +575,9 @@
     checkWorkingHours();
     setInterval(checkWorkingHours, 60000);
     
-    // Keyboard shortcuts
+    // ========================================
+    // KEYBOARD SHORTCUTS
+    // ========================================
     document.addEventListener('keydown', (e) => {
       if (e.key === '1') goToEmployee();
       if (e.key === '2') goToAdmin();
@@ -412,30 +592,36 @@
       }
     });
     
-    // Page load
+    // ========================================
+    // ONLINE/OFFLINE STATUS
+    // ========================================
+    window.addEventListener('online', () => {
+      document.getElementById('system-status').textContent = 'System Online';
+      document.getElementById('system-status').className = 'text-green-400';
+      console.log('🌐 Online');
+    });
+    
+    window.addEventListener('offline', () => {
+      document.getElementById('system-status').textContent = 'Offline Mode';
+      document.getElementById('system-status').className = 'text-red-400';
+      console.log('📡 Offline');
+    });
+    
+    // ========================================
+    // PAGE LOAD
+    // ========================================
     document.addEventListener('DOMContentLoaded', () => {
       console.log('✅ Index page ready');
-      
-      // Online/offline status
-      window.addEventListener('online', () => {
-        document.getElementById('system-status').textContent = 'System Online';
-        document.getElementById('system-status').className = 'text-green-400';
-      });
-      
-      window.addEventListener('offline', () => {
-        document.getElementById('system-status').textContent = 'Offline Mode';
-        document.getElementById('system-status').className = 'text-red-400';
-      });
+      console.log('📱 PWA features enabled');
     });
     
-    // PWA Install prompt
-    let deferredPrompt;
-    
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      console.log('💡 PWA install available');
-    });
+    // Make functions global
+    window.goToEmployee = goToEmployee;
+    window.goToAdmin = goToAdmin;
+    window.goToLogin = goToLogin;
+    window.showHelp = showHelp;
+    window.closeHelp = closeHelp;
+    window.showInfo = showInfo;
   </script>
 </body>
 </html>
