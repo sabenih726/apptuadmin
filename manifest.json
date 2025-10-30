@@ -1,6 +1,6 @@
 {
   "name": "ATTENDANCE TU ADMIN - Digital Attendance System",
-  "short_name": "ApptU Admin",
+  "short_name": "Attendance",
   "description": "Modern attendance system with GPS tracking and real-time monitoring",
   "start_url": "/",
   "scope": "/",
