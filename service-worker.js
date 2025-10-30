@@ -11,6 +11,7 @@ const RUNTIME_CACHE = `attendance-runtime-v${VERSION}`;
 // ========================================
 // FILES TO PRECACHE
 // ========================================
+// service-worker.js
 const PRECACHE_URLS = [
   // HTML Pages
   '/',
@@ -19,26 +20,22 @@ const PRECACHE_URLS = [
   '/employee.html',
   '/admin.html',
   '/admin-employees.html',
-  '/setup-admin.html',
-  '/promote-admin.html',
   
   // JavaScript Files
   '/js/employee-app.js',
   '/js/admin-app.js',
   '/firebase-config.js',
-  '/password-auth.js',
-  
-  // CSS Files (jika ada folder styles)
-  '/styles/employee.css',
-  '/styles/admin.css',
   
   // PWA Files
   '/manifest.json',
   
-  // Icons (adjust path sesuai folder Anda)
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  
+  // ✅ Icons - PATH YANG BENAR!
+  '/assets/icons/favicon-16x16.png',
+  '/assets/icons/favicon-32x32.png',
+  '/assets/icons/apple-touch-icon.png',
+  '/assets/icons/icon-192.png',
+  '/assets/icons/icon-512.png'
+ 
   // Fallback offline page
   '/offline.html'
 ];
