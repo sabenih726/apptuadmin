@@ -44,7 +44,7 @@ console.log('✅ Firebase verified in admin-app.js');
 // CONFIG
 // ========================================
 const COLLECTION_NAME = getCollectionPath();
-const MAX_RECORDS = 100;
+const MAX_RECORDS = 500; // Increased for export
 
 // ========================================
 // DOM ELEMENTS
@@ -64,7 +64,15 @@ const DOM = {
   totalPulang: document.getElementById('total-pulang'),
   userInfo: document.getElementById('user-info'),
   logoutBtn: document.getElementById('logout-btn'),
-  refreshBtn: document.getElementById('refresh-btn')
+  refreshBtn: document.getElementById('refresh-btn'),
+  // Export & Filter elements
+  dateFrom: document.getElementById('date-from'),
+  dateTo: document.getElementById('date-to'),
+  filterBtn: document.getElementById('filter-btn'),
+  exportBtn: document.getElementById('export-excel-btn'),
+  resetBtn: document.getElementById('reset-filter-btn'),
+  filterInfo: document.getElementById('filter-info'),
+  filterInfoText: document.getElementById('filter-info-text')
 };
 
 // ========================================
@@ -73,6 +81,8 @@ const DOM = {
 let allRecords = [];
 let unsubscribeSnapshot = null;
 let currentUserRole = null;
+let filteredRecords = [];
+let isFiltered = false;
 
 // ========================================
 // SHOW UNAUTHORIZED PAGE
@@ -201,12 +211,14 @@ async function initAuth() {
 // ========================================
 function loadData() {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Load data dari 30 hari terakhir
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
     
     const q = query(
       collection(db, COLLECTION_NAME),
-      where('timestamp', '>=', Timestamp.fromDate(today)),
+      where('timestamp', '>=', Timestamp.fromDate(thirtyDaysAgo)),
       orderBy('timestamp', 'desc'),
       limit(MAX_RECORDS)
     );
@@ -221,8 +233,19 @@ function loadData() {
         
         console.log(`📊 Loaded ${allRecords.length} records`);
         
-        updateStats();
-        renderTable();
+        // Reset filter state when new data arrives
+        if (!isFiltered) {
+          // Show today's data by default
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const todayRecords = allRecords.filter(r => r.timestamp >= today);
+          
+          updateStats(todayRecords);
+          renderTable(todayRecords);
+        } else {
+          // Re-apply filter if active
+          filterData();
+        }
       },
       (error) => {
         console.error('❌ Snapshot error:', error);
@@ -244,11 +267,12 @@ function loadData() {
 // ========================================
 // UPDATE STATS
 // ========================================
-function updateStats() {
-  const totalMasuk = allRecords.filter(r => r.type === 'masuk').length;
-  const totalPulang = allRecords.filter(r => r.type === 'pulang').length;
+function updateStats(data = null) {
+  const records = data || allRecords;
+  const totalMasuk = records.filter(r => r.type === 'masuk').length;
+  const totalPulang = records.filter(r => r.type === 'pulang').length;
   
-  if (DOM.totalRecords) DOM.totalRecords.textContent = allRecords.length;
+  if (DOM.totalRecords) DOM.totalRecords.textContent = records.length;
   if (DOM.totalMasuk) DOM.totalMasuk.textContent = totalMasuk;
   if (DOM.totalPulang) DOM.totalPulang.textContent = totalPulang;
 }
@@ -256,15 +280,17 @@ function updateStats() {
 // ========================================
 // RENDER TABLE
 // ========================================
-function renderTable() {
+function renderTable(data = null) {
   if (!DOM.tbody) return;
   
-  if (allRecords.length === 0) {
+  const records = data || allRecords;
+  
+  if (records.length === 0) {
     DOM.tbody.innerHTML = `
       <tr>
         <td colspan="5" class="text-center py-12 text-gray-500">
           <i class="fas fa-inbox text-5xl mb-4 opacity-30"></i>
-          <p class="text-lg">Belum ada data absensi hari ini</p>
+          <p class="text-lg">Belum ada data absensi</p>
           <p class="text-sm mt-2">Data akan muncul setelah karyawan melakukan absensi</p>
         </td>
       </tr>
@@ -272,7 +298,7 @@ function renderTable() {
     return;
   }
   
-  DOM.tbody.innerHTML = allRecords.map(r => {
+  DOM.tbody.innerHTML = records.map(r => {
     const typeColor = r.type === 'masuk' ? '#10b981' : '#f59e0b';
     const typeIcon = r.type === 'masuk' ? 'fa-sign-in-alt' : 'fa-sign-out-alt';
     
@@ -316,9 +342,181 @@ function renderTable() {
 }
 
 // ========================================
+// EXPORT TO EXCEL
+// ========================================
+function exportToExcel() {
+  try {
+    // Check if XLSX is loaded
+    if (typeof XLSX === 'undefined') {
+      alert('Library Excel belum dimuat. Silakan refresh halaman.');
+      return;
+    }
+    
+    // Use filtered records if filter is active, otherwise use today's data
+    let dataToExport;
+    if (isFiltered) {
+      dataToExport = filteredRecords;
+    } else {
+      // Export today's data by default
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      dataToExport = allRecords.filter(r => r.timestamp >= today);
+    }
+    
+    if (dataToExport.length === 0) {
+      alert('Tidak ada data untuk di-export');
+      return;
+    }
+    
+    // Prepare data for Excel
+    const excelData = dataToExport.map(record => ({
+      'Tanggal': record.timestamp.toLocaleDateString('id-ID'),
+      'Waktu': record.timestamp.toLocaleTimeString('id-ID'),
+      'Status': record.type?.toUpperCase() || '-',
+      'User ID': record.userId || '-',
+      'Email': record.userEmail || '-',
+      'Lokasi': record.locationName || 'Unknown',
+      'Latitude': record.coordinates?.latitude || '-',
+      'Longitude': record.coordinates?.longitude || '-'
+    }));
+    
+    // Create workbook
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Absensi');
+    
+    // Auto-size columns
+    const colWidths = [
+      { wch: 12 }, // Tanggal
+      { wch: 10 }, // Waktu
+      { wch: 8 },  // Status
+      { wch: 15 }, // User ID
+      { wch: 25 }, // Email
+      { wch: 40 }, // Lokasi
+      { wch: 12 }, // Latitude
+      { wch: 12 }  // Longitude
+    ];
+    ws['!cols'] = colWidths;
+    
+    // Generate filename with date
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0];
+    const filename = `Absensi_${dateStr}.xlsx`;
+    
+    // Download file
+    XLSX.writeFile(wb, filename);
+    
+    console.log(`✅ Exported ${dataToExport.length} records to ${filename}`);
+    
+  } catch (error) {
+    console.error('❌ Export error:', error);
+    alert('Gagal export ke Excel: ' + error.message);
+  }
+}
+
+// ========================================
+// FILTER DATA BY DATE
+// ========================================
+function filterData() {
+  const dateFrom = DOM.dateFrom?.value;
+  const dateTo = DOM.dateTo?.value;
+  
+  if (!dateFrom && !dateTo) {
+    alert('Silakan pilih tanggal untuk filter');
+    return;
+  }
+  
+  let filtered = [...allRecords];
+  
+  // Filter by start date
+  if (dateFrom) {
+    const startDate = new Date(dateFrom);
+    startDate.setHours(0, 0, 0, 0);
+    filtered = filtered.filter(r => r.timestamp >= startDate);
+  }
+  
+  // Filter by end date
+  if (dateTo) {
+    const endDate = new Date(dateTo);
+    endDate.setHours(23, 59, 59, 999);
+    filtered = filtered.filter(r => r.timestamp <= endDate);
+  }
+  
+  filteredRecords = filtered;
+  isFiltered = true;
+  
+  // Update UI
+  renderTable(filteredRecords);
+  updateStats(filteredRecords);
+  updateFilterInfo(dateFrom, dateTo);
+  
+  console.log(`📊 Filtered: ${filtered.length} of ${allRecords.length} records`);
+}
+
+// ========================================
+// RESET FILTER
+// ========================================
+function resetFilter() {
+  // Clear date inputs
+  if (DOM.dateFrom) DOM.dateFrom.value = '';
+  if (DOM.dateTo) DOM.dateTo.value = '';
+  
+  // Reset filter state
+  filteredRecords = [];
+  isFiltered = false;
+  
+  // Hide filter info
+  if (DOM.filterInfo) DOM.filterInfo.classList.add('hidden');
+  
+  // Show today's data
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayRecords = allRecords.filter(r => r.timestamp >= today);
+  
+  renderTable(todayRecords);
+  updateStats(todayRecords);
+  
+  console.log('🔄 Filter reset');
+}
+
+// ========================================
+// UPDATE FILTER INFO
+// ========================================
+function updateFilterInfo(dateFrom, dateTo) {
+  if (!DOM.filterInfo || !DOM.filterInfoText) return;
+  
+  DOM.filterInfo.classList.remove('hidden');
+  
+  let infoText = 'Filter aktif: ';
+  if (dateFrom && dateTo) {
+    infoText += `${formatDate(dateFrom)} s/d ${formatDate(dateTo)}`;
+  } else if (dateFrom) {
+    infoText += `Mulai ${formatDate(dateFrom)}`;
+  } else if (dateTo) {
+    infoText += `Sampai ${formatDate(dateTo)}`;
+  }
+  
+  infoText += ` (${filteredRecords.length} data)`;
+  DOM.filterInfoText.textContent = infoText;
+}
+
+// ========================================
+// FORMAT DATE UTILITY
+// ========================================
+function formatDate(dateStr) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+}
+
+// ========================================
 // SHOW DETAIL
 // ========================================
 window.showDetail = function(id) {
+  // Find record from all records (not just filtered)
   const record = allRecords.find(r => r.id === id);
   if (!record) return;
   
@@ -407,7 +605,7 @@ window.deleteRecord = async function(id) {
 };
 
 // ========================================
-// LOGOUT (SINGLE DECLARATION ONLY)
+// LOGOUT
 // ========================================
 async function handleLogout() {
   if (!confirm('Logout dari admin panel?')) return;
@@ -432,6 +630,9 @@ function refreshData() {
     const originalHTML = DOM.refreshBtn.innerHTML;
     DOM.refreshBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin mr-1"></i> Refreshing...';
     DOM.refreshBtn.disabled = true;
+    
+    // Reset filter and reload
+    resetFilter();
     
     setTimeout(() => {
       DOM.refreshBtn.innerHTML = originalHTML;
@@ -465,11 +666,24 @@ function showError(message) {
   }
 }
 
+// Make functions available globally for onclick handlers
+window.resetFilter = resetFilter;
+
 // ========================================
-// EVENT LISTENERS (SINGLE REGISTRATION ONLY)
+// EVENT LISTENERS
 // ========================================
 DOM.logoutBtn?.addEventListener('click', handleLogout);
 DOM.refreshBtn?.addEventListener('click', refreshData);
+DOM.exportBtn?.addEventListener('click', exportToExcel);
+DOM.filterBtn?.addEventListener('click', filterData);
+DOM.resetBtn?.addEventListener('click', resetFilter);
+
+// Set default dates to today
+if (DOM.dateFrom && DOM.dateTo) {
+  const today = new Date().toISOString().split('T')[0];
+  DOM.dateFrom.value = today;
+  DOM.dateTo.value = today;
+}
 
 window.addEventListener('beforeunload', () => {
   if (unsubscribeSnapshot) {
