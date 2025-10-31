@@ -3,39 +3,73 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Absensi Karyawan - ApptU</title>
+  <title>Employee Attendance - Trakindo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#FDB913">
   
   <style>
+    :root {
+      --trakindo-yellow: #FDB913;
+      --trakindo-dark: #1a1a1a;
+      --trakindo-gray: #2d2d2d;
+    }
+    
     body {
       font-family: 'IBM Plex Mono', monospace;
-      background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%);
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+      position: relative;
+    }
+    
+    /* Trakindo Yellow Top Bar */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #FDB913, #FFAA00, #FDB913);
+      z-index: 1000;
+      animation: shimmer 3s infinite;
+    }
+    
+    @keyframes shimmer {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
     }
     
     .card {
-      background: rgba(17, 24, 39, 0.95);
+      background: rgba(45, 45, 45, 0.95);
       border-radius: 12px;
-      border: 1px solid rgba(75, 85, 99, 0.3);
+      border: 1px solid rgba(253, 185, 19, 0.2);
       backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(253, 185, 19, 0.1);
     }
     
     .btn-primary {
-      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-      color: white;
+      background: linear-gradient(135deg, #FDB913 0%, #FFAA00 100%);
+      color: #1a1a1a;
       padding: 12px 24px;
       border-radius: 8px;
-      font-weight: 500;
+      font-weight: 600;
       transition: all 0.3s;
       border: none;
       cursor: pointer;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.3);
     }
     
     .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #FFAA00 0%, #FDB913 100%);
       transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 6px 20px rgba(253, 185, 19, 0.4), 0 4px 0 rgba(0,0,0,0.3);
+    }
+    
+    .btn-primary:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 rgba(0,0,0,0.3);
     }
     
     .btn-primary:disabled {
@@ -44,55 +78,102 @@
     }
     
     .btn-secondary {
-      background: rgba(75, 85, 99, 0.5);
+      background: rgba(45, 45, 45, 0.8);
       color: white;
       padding: 12px 24px;
       border-radius: 8px;
       font-weight: 500;
       transition: all 0.3s;
-      border: 1px solid rgba(75, 85, 99, 0.5);
+      border: 1px solid rgba(253, 185, 19, 0.3);
       cursor: pointer;
     }
     
     .btn-secondary:hover {
-      background: rgba(75, 85, 99, 0.7);
+      background: rgba(55, 55, 55, 0.9);
+      border-color: rgba(253, 185, 19, 0.5);
+      box-shadow: 0 4px 12px rgba(253, 185, 19, 0.2);
     }
     
     .status-display {
       padding: 12px;
-      background: rgba(31, 41, 55, 0.5);
+      background: rgba(26, 26, 26, 0.6);
       border-radius: 8px;
-      border: 1px solid rgba(75, 85, 99, 0.3);
+      border: 1px solid rgba(253, 185, 19, 0.2);
+    }
+    
+    .video-container {
+      background: #000;
+      border: 2px solid rgba(253, 185, 19, 0.3);
+      box-shadow: 0 0 20px rgba(253, 185, 19, 0.2);
+    }
+    
+    .video-placeholder {
+      color: rgba(253, 185, 19, 0.5);
+    }
+    
+    /* History item */
+    .history-item {
+      background: rgba(26, 26, 26, 0.5);
+      border-left: 3px solid #FDB913;
+      transition: all 0.3s;
+    }
+    
+    .history-item:hover {
+      background: rgba(36, 36, 36, 0.7);
+      border-left-color: #FFAA00;
+      transform: translateX(4px);
+    }
+    
+    /* Icon colors */
+    .icon-yellow {
+      color: #FDB913;
+    }
+    
+    /* Loading animation */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
   </style>
 </head>
 
-<body class="flex flex-col items-center justify-start min-h-screen p-4">
+<body class="flex flex-col items-center justify-start min-h-screen p-4 pt-6">
 
   <div class="card w-full max-w-md p-6 shadow-lg mb-6">
     <!-- Header -->
     <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-700">
       <h1 class="text-xl font-bold text-white flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
-             stroke="currentColor" stroke-width="2" stroke-linecap="round"
-             stroke-linejoin="round" class="mr-2">
-          <path d="M12 2a10 10 0 100 20 10 10 0 000-20z"></path>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
-        Absensi Karyawan
+        <i class="fas fa-user-clock mr-2 icon-yellow"></i>
+        <span class="text-white">Employee</span>
+        <span class="icon-yellow ml-2">Attendance</span>
       </h1>
       <div class="text-right">
-        <span id="user-status" class="text-xs text-gray-500 block">Loading...</span>
-        <button id="logout-btn" class="text-xs text-red-400 hover:text-red-300 mt-1 hidden">Logout</button>
+        <span id="user-status" class="text-xs text-gray-400 block">
+          <i class="fas fa-spinner fa-spin icon-yellow"></i> Loading...
+        </span>
+        <button id="logout-btn" class="text-xs text-red-400 hover:text-red-300 mt-1 hidden transition">
+          <i class="fas fa-sign-out-alt mr-1"></i>Logout
+        </button>
       </div>
     </div>
 
     <!-- Status -->
     <div class="mb-4">
-      <label class="block text-sm font-medium text-gray-400 mb-2">Status Proses</label>
+      <label class="block text-sm font-medium text-gray-400 mb-2">
+        <i class="fas fa-info-circle mr-1 icon-yellow"></i>
+        Status Proses
+      </label>
       <div id="status-container" class="status-display text-gray-300">
-        <p id="status-message">Memuat sistem...</p>
-        <p id="offline-status" class="text-sm text-red-400 mt-1 hidden">
+        <p id="status-message">
+          <i class="fas fa-circle-notch fa-spin icon-yellow mr-2"></i>
+          Memuat sistem...
+        </p>
+        <p id="offline-status" class="text-sm text-red-400 mt-2 hidden">
+          <i class="fas fa-exclamation-triangle mr-1"></i>
           MODE OFFLINE: Data disimpan lokal.
         </p>
         <p id="location-message" class="text-sm text-gray-400 mt-1"></p>
@@ -100,36 +181,56 @@
     </div>
 
     <!-- Kamera -->
-    <div class="mb-4 aspect-video w-full rounded-md overflow-hidden border border-gray-700 bg-gray-900 flex items-center justify-center">
+    <div class="mb-4 aspect-video w-full rounded-md overflow-hidden video-container flex items-center justify-center">
       <video id="video" autoplay playsinline class="w-full h-full object-cover" style="display:none;"></video>
       <canvas id="canvas-capture" class="w-full h-full object-cover" style="display:none;"></canvas>
       <canvas id="canvas-hidden" style="display:none;"></canvas>
-      <div id="video-placeholder" class="text-gray-500">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"
-             fill="none" stroke="currentColor" stroke-width="1.5"
-             stroke-linecap="round" stroke-linejoin="round">
-          <path d="M23 19a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h18z"></path>
-          <circle cx="12" cy="13" r="3"></circle>
-          <path d="M5 19l4.5-4.5a2 2 0 012.8 0L17 19"></path>
-        </svg>
+      <div id="video-placeholder" class="video-placeholder text-center">
+        <i class="fas fa-camera text-5xl mb-2"></i>
+        <p class="text-sm">Camera Preview</p>
       </div>
     </div>
 
     <!-- Tombol kontrol -->
     <div class="flex flex-col gap-3">
-      <button id="start-btn" class="btn-primary w-full" disabled>Mulai Absensi</button>
-      <button id="capture-btn" class="btn-primary w-full hidden">Ambil Foto</button>
-      <button id="submit-btn" class="btn-primary w-full hidden">Kirim Absensi</button>
-      <button id="reset-btn" class="btn-secondary w-full hidden">Batal</button>
+      <button id="start-btn" class="btn-primary w-full" disabled>
+        <i class="fas fa-play mr-2"></i>
+        Mulai Absensi
+      </button>
+      <button id="capture-btn" class="btn-primary w-full hidden">
+        <i class="fas fa-camera mr-2"></i>
+        Ambil Foto
+      </button>
+      <button id="submit-btn" class="btn-primary w-full hidden">
+        <i class="fas fa-paper-plane mr-2"></i>
+        Kirim Absensi
+      </button>
+      <button id="reset-btn" class="btn-secondary w-full hidden">
+        <i class="fas fa-redo mr-2"></i>
+        Batal
+      </button>
     </div>
   </div>
 
   <!-- Riwayat -->
   <div class="card w-full max-w-md p-6 shadow-lg">
-    <h2 class="text-lg font-bold text-white mb-4 border-b border-gray-700 pb-2">Riwayat Absensi Hari Ini</h2>
-    <div id="history-container" class="text-sm text-gray-400">
-      <p>Memuat riwayat...</p>
+    <h2 class="text-lg font-bold text-white mb-4 pb-2 border-b border-gray-700 flex items-center">
+      <i class="fas fa-history mr-2 icon-yellow"></i>
+      Riwayat Absensi Hari Ini
+    </h2>
+    <div id="history-container" class="text-sm text-gray-400 space-y-2">
+      <p class="text-center py-4">
+        <i class="fas fa-circle-notch fa-spin icon-yellow mr-2"></i>
+        Memuat riwayat...
+      </p>
     </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="text-center mt-6 text-gray-500 text-xs">
+    <p>
+      © 2025 <span class="icon-yellow font-semibold">Trakindo</span> Facility Services
+    </p>
   </div>
 
   <!-- Load Scripts -->
