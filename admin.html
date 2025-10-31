@@ -3,26 +3,130 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Admin - Absensi Karyawan</title>
+  <title>Admin Dashboard - Trakindo Attendance</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta name="theme-color" content="#FDB913">
   
   <!-- SheetJS for Excel export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   
   <style>
+    :root {
+      --trakindo-yellow: #FDB913;
+      --trakindo-dark: #1a1a1a;
+      --trakindo-gray: #2d2d2d;
+    }
+    
     body {
       font-family: 'IBM Plex Mono', monospace;
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+      color: #e2e8f0;
+      position: relative;
     }
+    
+    /* Trakindo Yellow Top Bar */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #FDB913, #FFAA00, #FDB913);
+      z-index: 1000;
+      animation: shimmer 3s infinite;
+    }
+    
+    @keyframes shimmer {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+    
     .section-card {
-      background: #1e293b;
+      background: rgba(45, 45, 45, 0.95);
       border-radius: 1rem;
       padding: 1.25rem;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 32px rgba(253, 185, 19, 0.1);
+      border: 1px solid rgba(253, 185, 19, 0.2);
     }
+    
+    .stat-card {
+      background: rgba(45, 45, 45, 0.95);
+      border-radius: 1rem;
+      padding: 1.25rem;
+      box-shadow: 0 8px 32px rgba(253, 185, 19, 0.1);
+      border: 1px solid rgba(253, 185, 19, 0.2);
+      transition: all 0.3s;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(253, 185, 19, 0.2);
+      border-color: rgba(253, 185, 19, 0.4);
+    }
+    
+    .table-row {
+      transition: all 0.2s;
+    }
+    
     .table-row:hover {
-      background: rgba(99, 102, 241, 0.1);
+      background: rgba(253, 185, 19, 0.1);
+      border-left: 3px solid #FDB913;
+    }
+    
+    /* Icon colors */
+    .icon-yellow {
+      color: #FDB913;
+    }
+    
+    .icon-green {
+      color: #10b981;
+    }
+    
+    .icon-blue {
+      color: #3b82f6;
+    }
+    
+    .icon-orange {
+      color: #f59e0b;
+    }
+    
+    /* Buttons */
+    .btn-yellow {
+      background: linear-gradient(135deg, #FDB913 0%, #FFAA00 100%);
+      color: #1a1a1a;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    .btn-yellow:hover {
+      background: linear-gradient(135deg, #FFAA00 0%, #FDB913 100%);
+      box-shadow: 0 4px 12px rgba(253, 185, 19, 0.4);
+    }
+    
+    .btn-green {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      transition: all 0.3s;
+    }
+    
+    .btn-green:hover {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+    
+    /* Input fields */
+    input[type="date"] {
+      background: rgba(26, 26, 26, 0.8);
+      border: 1px solid rgba(253, 185, 19, 0.2);
+      transition: all 0.3s;
+    }
+    
+    input[type="date"]:focus {
+      border-color: rgba(253, 185, 19, 0.5);
+      box-shadow: 0 0 0 3px rgba(253, 185, 19, 0.1);
+      outline: none;
     }
     
     /* Loading animation */
@@ -30,30 +134,59 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
     }
+    
     .animate-pulse {
       animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    /* Table header sticky */
+    thead {
+      background: #1a1a1a;
+      border-bottom: 2px solid rgba(253, 185, 19, 0.3);
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #FDB913;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #FFAA00;
     }
   </style>
 </head>
 
-<body class="min-h-screen flex flex-col items-center p-6" style="background: #0f172a; color: #e2e8f0;">
+<body class="min-h-screen flex flex-col items-center p-6 pt-8">
 
   <!-- HEADER -->
-  <header class="w-full max-w-6xl flex justify-between items-center mb-6 section-card">
-    <div class="flex items-center space-x-6">
+  <header class="w-full max-w-6xl flex flex-col md:flex-row justify-between items-start md:items-center mb-6 section-card gap-4">
+    <div class="flex flex-col md:flex-row items-start md:items-center md:space-x-6 gap-3">
       <div class="flex items-center">
-        <i class="fas fa-chart-line text-2xl mr-3" style="color: #818cf8;"></i>
-        <h1 class="text-2xl font-bold" style="color: #818cf8;">Dashboard Admin</h1>
+        <i class="fas fa-chart-line text-2xl mr-3 icon-yellow"></i>
+        <h1 class="text-2xl font-bold">
+          <span class="icon-yellow">TRAKINDO</span> 
+          <span class="text-white">Admin Dashboard</span>
+        </h1>
       </div>
       <!-- Link to employee management -->
-      <a href="admin-employees.html" class="text-blue-400 hover:text-blue-300 text-sm flex items-center transition">
+      <a href="admin-employees.html" class="icon-yellow hover:text-yellow-400 text-sm flex items-center transition">
         <i class="fas fa-users-cog mr-2"></i>
         Kelola Karyawan
       </a>
     </div>
     <div class="flex items-center space-x-4">
       <span id="user-info" class="text-sm text-gray-400 flex items-center">
-        <i class="fas fa-spinner fa-spin mr-2"></i>
+        <i class="fas fa-spinner fa-spin mr-2 icon-yellow"></i>
         Loading...
       </span>
       <button id="logout-btn" class="text-sm text-red-400 hover:text-red-300 transition disabled:opacity-50" disabled>
@@ -64,30 +197,30 @@
 
   <!-- STATS -->
   <div class="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    <div class="section-card text-center">
-      <i class="fas fa-users text-3xl mb-2" style="color: #10b981;"></i>
-      <p class="text-2xl font-bold" id="total-records">
+    <div class="stat-card text-center">
+      <i class="fas fa-users text-4xl mb-3 icon-green"></i>
+      <p class="text-3xl font-bold text-white" id="total-records">
         <span class="animate-pulse">--</span>
       </p>
-      <p class="text-sm text-gray-400">Total Absensi Hari Ini</p>
+      <p class="text-sm text-gray-400 mt-2">Total Absensi Hari Ini</p>
     </div>
-    <div class="section-card text-center">
-      <i class="fas fa-user-check text-3xl mb-2" style="color: #3b82f6;"></i>
-      <p class="text-2xl font-bold" id="total-masuk">
+    <div class="stat-card text-center">
+      <i class="fas fa-user-check text-4xl mb-3 icon-yellow"></i>
+      <p class="text-3xl font-bold text-white" id="total-masuk">
         <span class="animate-pulse">--</span>
       </p>
-      <p class="text-sm text-gray-400">Absen Masuk</p>
+      <p class="text-sm text-gray-400 mt-2">Absen Masuk</p>
     </div>
-    <div class="section-card text-center">
-      <i class="fas fa-user-clock text-3xl mb-2" style="color: #f59e0b;"></i>
-      <p class="text-2xl font-bold" id="total-pulang">
+    <div class="stat-card text-center">
+      <i class="fas fa-user-clock text-4xl mb-3 icon-orange"></i>
+      <p class="text-3xl font-bold text-white" id="total-pulang">
         <span class="animate-pulse">--</span>
       </p>
-      <p class="text-sm text-gray-400">Absen Pulang</p>
+      <p class="text-sm text-gray-400 mt-2">Absen Pulang</p>
     </div>
   </div>
 
-  <!-- ✅ EXPORT SECTION (NEW) -->
+  <!-- EXPORT SECTION -->
   <div class="w-full max-w-6xl mb-6">
     <div class="section-card">
       <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -96,34 +229,34 @@
         <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm text-gray-400 mb-2">
-              <i class="fas fa-calendar mr-1"></i>
+              <i class="fas fa-calendar mr-1 icon-yellow"></i>
               Dari Tanggal
             </label>
             <input 
               type="date" 
               id="date-from" 
-              class="w-full p-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+              class="w-full p-2 text-white rounded"
             >
           </div>
           
           <div>
             <label class="block text-sm text-gray-400 mb-2">
-              <i class="fas fa-calendar mr-1"></i>
+              <i class="fas fa-calendar mr-1 icon-yellow"></i>
               Sampai Tanggal
             </label>
             <input 
               type="date" 
               id="date-to" 
-              class="w-full p-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+              class="w-full p-2 text-white rounded"
             >
           </div>
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap">
           <button 
             id="filter-btn"
-            class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition flex items-center"
+            class="px-6 py-2 btn-yellow rounded transition flex items-center"
           >
             <i class="fas fa-filter mr-2"></i>
             Filter
@@ -131,7 +264,7 @@
           
           <button 
             id="export-excel-btn"
-            class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition flex items-center"
+            class="px-6 py-2 btn-green text-white rounded transition flex items-center"
           >
             <i class="fas fa-file-excel mr-2"></i>
             Export Excel
@@ -148,9 +281,9 @@
       </div>
       
       <!-- Info Filter -->
-      <div id="filter-info" class="mt-3 text-sm text-gray-400 hidden">
-        <i class="fas fa-info-circle mr-1"></i>
-        <span id="filter-info-text">Menampilkan semua data</span>
+      <div id="filter-info" class="mt-3 text-sm hidden">
+        <i class="fas fa-info-circle mr-1 icon-yellow"></i>
+        <span id="filter-info-text" class="text-gray-400">Menampilkan semua data</span>
       </div>
     </div>
   </div>
@@ -161,13 +294,13 @@
     <!-- Tabel Riwayat (2 columns) -->
     <section class="section-card lg:col-span-2">
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-lg font-semibold">
-          <i class="fas fa-history mr-2"></i>
+        <h2 class="text-lg font-semibold flex items-center">
+          <i class="fas fa-history mr-2 icon-yellow"></i>
           Riwayat Absensi
         </h2>
         <button 
           id="refresh-btn" 
-          class="text-sm text-blue-400 hover:text-blue-300 transition disabled:opacity-50"
+          class="text-sm icon-yellow hover:text-yellow-400 transition disabled:opacity-50"
         >
           <i class="fas fa-sync-alt mr-1"></i> Refresh
         </button>
@@ -175,19 +308,27 @@
       
       <div class="overflow-x-auto" style="max-height: 70vh; overflow-y: auto;">
         <table class="w-full border-collapse">
-          <thead class="sticky top-0" style="background: #0f172a;">
+          <thead class="sticky top-0">
             <tr class="border-b border-gray-700">
-              <th class="p-3 text-left text-sm">Waktu</th>
-              <th class="p-3 text-left text-sm">Status</th>
-              <th class="p-3 text-left text-sm">User</th>
-              <th class="p-3 text-left text-sm">Lokasi</th>
-              <th class="p-3 text-left text-sm">Aksi</th>
+              <th class="p-3 text-left text-sm text-gray-400">
+                <i class="fas fa-clock mr-1"></i>Waktu
+              </th>
+              <th class="p-3 text-left text-sm text-gray-400">
+                <i class="fas fa-tag mr-1"></i>Status
+              </th>
+              <th class="p-3 text-left text-sm text-gray-400">
+                <i class="fas fa-user mr-1"></i>User
+              </th>
+              <th class="p-3 text-left text-sm text-gray-400">
+                <i class="fas fa-map-marker-alt mr-1"></i>Lokasi
+              </th>
+              <th class="p-3 text-left text-sm text-gray-400">Aksi</th>
             </tr>
           </thead>
           <tbody id="attendance-table-body">
             <tr>
               <td colspan="5" class="text-center py-12 text-gray-500">
-                <i class="fas fa-spinner fa-spin text-3xl mb-3"></i>
+                <i class="fas fa-spinner fa-spin text-3xl mb-3 icon-yellow"></i>
                 <p class="text-lg">Memuat data...</p>
                 <p class="text-xs mt-2">Mohon tunggu sebentar</p>
               </td>
@@ -199,42 +340,51 @@
 
     <!-- Detail Foto (1 column) -->
     <section class="section-card">
-      <h2 class="text-lg font-semibold mb-4 text-center">
-        <i class="fas fa-info-circle mr-2"></i>
+      <h2 class="text-lg font-semibold mb-4 text-center flex items-center justify-center">
+        <i class="fas fa-info-circle mr-2 icon-yellow"></i>
         Detail Absensi
       </h2>
 
       <div id="no-photo-msg" class="text-center my-8" style="color: #6b7280;">
-        <i class="fas fa-image text-4xl mb-3 opacity-30"></i>
+        <i class="fas fa-image text-5xl mb-3 opacity-30"></i>
         <p class="text-sm">Pilih data untuk melihat detail</p>
       </div>
 
       <div id="detail-view" class="hidden">
-        <img id="verification-photo" class="rounded-lg w-full max-h-64 object-cover mb-4" alt="Foto Absensi">
+        <img id="verification-photo" class="rounded-lg w-full max-h-64 object-cover mb-4 border-2 border-gray-700" alt="Foto Absensi">
 
         <div class="text-sm space-y-2">
-          <div class="flex items-center justify-between p-2 bg-gray-800 rounded">
-            <span class="text-gray-400">Status:</span>
+          <div class="flex items-center justify-between p-3 bg-gray-800 bg-opacity-50 rounded border-l-3 border-yellow-500">
+            <span class="text-gray-400">
+              <i class="fas fa-tag mr-2 icon-yellow"></i>Status:
+            </span>
             <span id="verif-status" class="font-semibold"></span>
           </div>
           
-          <div class="flex items-center justify-between p-2 bg-gray-800 rounded">
-            <span class="text-gray-400">Waktu:</span>
+          <div class="flex items-center justify-between p-3 bg-gray-800 bg-opacity-50 rounded">
+            <span class="text-gray-400">
+              <i class="fas fa-clock mr-2 icon-yellow"></i>Waktu:
+            </span>
             <span id="verif-time"></span>
           </div>
           
-          <div class="flex items-center justify-between p-2 bg-gray-800 rounded">
-            <span class="text-gray-400">User:</span>
+          <div class="flex items-center justify-between p-3 bg-gray-800 bg-opacity-50 rounded">
+            <span class="text-gray-400">
+              <i class="fas fa-user mr-2 icon-yellow"></i>User:
+            </span>
             <span id="verif-user"></span>
           </div>
           
-          <div class="p-2 bg-gray-800 rounded">
-            <p class="text-gray-400 mb-1">Koordinat:</p>
+          <div class="p-3 bg-gray-800 bg-opacity-50 rounded">
+            <p class="text-gray-400 mb-2 flex items-center">
+              <i class="fas fa-map-marked-alt mr-2 icon-yellow"></i>
+              Koordinat:
+            </p>
             <p id="verif-coords" class="text-xs text-blue-400"></p>
           </div>
           
           <a id="verif-map-link" href="#" target="_blank" 
-             class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition">
+             class="block w-full text-center btn-yellow py-3 rounded transition font-semibold">
             <i class="fas fa-map-marked-alt mr-2"></i>
             Lihat di Google Maps
           </a>
@@ -246,8 +396,8 @@
   <!-- Footer Info -->
   <footer class="w-full max-w-6xl mt-6 text-center text-gray-500 text-xs">
     <p>
-      <i class="fas fa-shield-alt mr-1"></i>
-      ApptU Admin Dashboard • 
+      <i class="fas fa-shield-alt mr-1 icon-yellow"></i>
+      © 2025 <span class="icon-yellow font-semibold">Trakindo</span> Admin Dashboard • 
       <span id="last-update">Last updated: --</span>
     </p>
   </footer>
@@ -266,6 +416,7 @@
     
     // Update every minute
     setInterval(updateTimestamp, 60000);
+    updateTimestamp();
     
     // Update on visibility change
     document.addEventListener('visibilitychange', () => {
