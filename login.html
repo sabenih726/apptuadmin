@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Sistem Absensi</title>
+  <title>Login - Trakindo Attendance System</title>
   
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#667eea">
+  <meta name="theme-color" content="#FDB913">
   
   <!-- Icons -->
   <link rel="icon" type="image/png" href="/assets/icons/icon-192.png">
@@ -15,53 +15,251 @@
   
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <style>
+    :root {
+      --trakindo-yellow: #FDB913;
+      --trakindo-dark: #1a1a1a;
+      --trakindo-gray: #2d2d2d;
+    }
+    
     body {
       font-family: 'IBM Plex Mono', monospace;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
       min-height: 100vh;
+      position: relative;
     }
+    
+    /* Trakindo Yellow Accent Top Bar */
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #FDB913, #FFAA00, #FDB913);
+      z-index: 1000;
+      animation: shimmer 3s infinite;
+    }
+    
+    @keyframes shimmer {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+    
     .glass-panel {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(45, 45, 45, 0.95);
       backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(253, 185, 19, 0.2);
+      box-shadow: 0 8px 32px rgba(253, 185, 19, 0.1);
     }
-    .input-group { position: relative; }
+    
+    .input-group { 
+      position: relative; 
+    }
+    
     .input-icon {
       position: absolute;
       left: 1rem;
       top: 50%;
       transform: translateY(-50%);
+      color: #FDB913;
+      opacity: 0.7;
+      transition: opacity 0.3s;
+    }
+    
+    .form-input { 
+      padding-left: 3rem;
+      background: rgba(26, 26, 26, 0.6) !important;
+      border: 1px solid rgba(253, 185, 19, 0.2) !important;
+      color: white !important;
+      transition: all 0.3s;
+    }
+    
+    .form-input:focus {
+      background: rgba(26, 26, 26, 0.8) !important;
+      border-color: rgba(253, 185, 19, 0.5) !important;
+      box-shadow: 0 0 0 3px rgba(253, 185, 19, 0.1);
+    }
+    
+    .form-input:focus ~ .input-icon {
+      opacity: 1;
+    }
+    
+    .form-input::placeholder {
       color: #9ca3af;
     }
-    .form-input { padding-left: 3rem; }
-    .shake { animation: shake 0.5s; }
+    
+    /* Trakindo Button Styles */
+    .btn-yellow {
+      background: linear-gradient(135deg, #FDB913 0%, #FFAA00 100%);
+      color: #1a1a1a;
+      font-weight: 600;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+      transition: all 0.1s;
+    }
+    
+    .btn-yellow:hover {
+      background: linear-gradient(135deg, #FFAA00 0%, #FDB913 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(253, 185, 19, 0.4), 0 4px 0 rgba(0,0,0,0.3);
+    }
+    
+    .btn-yellow:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+    }
+    
+    .btn-yellow:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-white {
+      background: white;
+      color: #1a1a1a;
+      border: 1px solid transparent;
+      transition: all 0.3s;
+    }
+    
+    .btn-white:hover {
+      background: #f3f4f6;
+      border-color: #FDB913;
+      box-shadow: 0 4px 12px rgba(253, 185, 19, 0.2);
+    }
+    
+    .btn-dark {
+      background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+      border: 1px solid rgba(253, 185, 19, 0.3);
+      color: white;
+      transition: all 0.3s;
+    }
+    
+    .btn-dark:hover {
+      background: linear-gradient(135deg, #3d3d3d 0%, #2a2a2a 100%);
+      border-color: rgba(253, 185, 19, 0.5);
+      box-shadow: 0 4px 12px rgba(253, 185, 19, 0.2);
+    }
+    
+    /* Logo styles */
+    .logo-container {
+      position: relative;
+      filter: drop-shadow(0 4px 12px rgba(253, 185, 19, 0.3));
+      transition: transform 0.3s;
+    }
+    
+    .logo-container:hover {
+      transform: scale(1.05);
+      filter: drop-shadow(0 6px 20px rgba(253, 185, 19, 0.5));
+    }
+    
+    .logo-fallback {
+      background: linear-gradient(135deg, #FDB913 0%, #FFAA00 100%);
+      box-shadow: 0 8px 24px rgba(253, 185, 19, 0.4);
+    }
+    
+    /* Checkbox custom style */
+    input[type="checkbox"] {
+      accent-color: #FDB913;
+    }
+    
+    /* Links */
+    .link-yellow {
+      color: #FDB913;
+      transition: all 0.3s;
+    }
+    
+    .link-yellow:hover {
+      color: #FFAA00;
+      text-shadow: 0 0 8px rgba(253, 185, 19, 0.5);
+    }
+    
+    /* Divider */
+    .divider-line {
+      background: linear-gradient(90deg, transparent, rgba(253, 185, 19, 0.3), transparent);
+    }
+    
+    /* Status Messages */
+    .status-success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    
+    .status-error {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    
+    .status-warning {
+      background: linear-gradient(135deg, #FDB913 0%, #FFAA00 100%);
+      color: #1a1a1a;
+      border: 1px solid rgba(253, 185, 19, 0.3);
+    }
+    
+    /* Animations */
+    .shake { 
+      animation: shake 0.5s; 
+    }
+    
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
       25% { transform: translateX(-10px); }
       75% { transform: translateX(10px); }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #FDB913;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #FFAA00;
     }
   </style>
 </head>
 
 <body class="flex items-center justify-center min-h-screen p-4">
   
-  <div class="glass-panel rounded-2xl p-8 w-full max-w-md">
+  <div class="glass-panel rounded-2xl p-8 w-full max-w-md fade-in">
     
+    <!-- Header Section -->
     <div class="text-center mb-6">
-      <div class="w-24 h-24 mx-auto mb-2">
+      <div class="w-24 h-24 mx-auto mb-3 logo-container">
         <img 
           src="/assets/logo-trakindo.png" 
-          alt="Company Logo" 
-          class="w-full h-full object-contain drop-shadow-lg"
-          onerror="this.outerHTML='<div class=&quot;w-24 h-24 rounded-full bg-gray-800 flex items-center justify-center mx-auto mb-3&quot;><i class=&quot;fas fa-building text-white text-3xl&quot;></i></div>'"
+          alt="Trakindo Logo" 
+          class="w-full h-full object-contain"
+          onerror="this.outerHTML='<div class=&quot;w-24 h-24 rounded-full logo-fallback flex items-center justify-center mx-auto mb-3&quot;><i class=&quot;fas fa-building text-black text-3xl&quot;></i></div>'"
         >
       </div>
-      <h1 class="text-2xl font-bold text-white mb-2">Sistem Absensi</h1>
-      <p class="text-gray-300 text-sm">Masuk ke akun Anda</p>
+      <h1 class="text-2xl font-bold text-white mb-1">
+        <span style="color: #FDB913;">TRAKINDO</span> ATTENDANCE
+      </h1>
+      <p class="text-gray-400 text-sm">Masuk ke akun Anda</p>
     </div>
 
+    <!-- Login Form -->
     <form id="login-form" class="space-y-4">
       
       <div class="input-group">
@@ -72,7 +270,7 @@
           placeholder="Email" 
           required
           autocomplete="email"
-          class="form-input w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 text-white placeholder-gray-300 focus:outline-none focus:border-white focus:bg-opacity-30 transition"
+          class="form-input w-full px-4 py-3 rounded-lg text-white placeholder-gray-400 focus:outline-none transition"
         />
       </div>
       
@@ -84,27 +282,27 @@
           placeholder="Password" 
           required
           autocomplete="current-password"
-          class="form-input w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 text-white placeholder-gray-300 focus:outline-none focus:border-white focus:bg-opacity-30 transition"
+          class="form-input w-full px-4 py-3 rounded-lg text-white placeholder-gray-400 focus:outline-none transition"
         />
-        <button type="button" id="toggle-password-btn" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300">
+        <button type="button" id="toggle-password-btn" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition">
           <i class="fas fa-eye" id="password-toggle"></i>
         </button>
       </div>
       
       <div class="flex items-center justify-between">
-        <label class="flex items-center text-white text-sm cursor-pointer">
+        <label class="flex items-center text-gray-300 text-sm cursor-pointer hover:text-white transition">
           <input type="checkbox" id="remember" class="mr-2 cursor-pointer">
           <span>Ingat saya</span>
         </label>
-        <a href="#" class="text-sm text-gray-300 hover:text-white transition">Lupa password?</a>
+        <a href="#" class="text-sm link-yellow">Lupa password?</a>
       </div>
       
       <button 
         type="submit" 
         id="login-btn"
-        class="w-full bg-white text-purple-600 font-bold py-3 rounded-lg hover:bg-opacity-90 transition flex items-center justify-center"
+        class="w-full btn-yellow py-3 rounded-lg font-bold flex items-center justify-center"
       >
-        <span id="btn-text">Masuk</span>
+        <span id="btn-text">MASUK</span>
         <i class="fas fa-circle-notch fa-spin ml-2 hidden" id="btn-spinner"></i>
       </button>
       
@@ -114,29 +312,43 @@
       
     </form>
 
+    <!-- Divider -->
     <div class="flex items-center my-6">
-      <div class="flex-1 h-px bg-gray-400"></div>
-      <span class="px-3 text-gray-300 text-sm">atau</span>
-      <div class="flex-1 h-px bg-gray-400"></div>
+      <div class="flex-1 h-px divider-line"></div>
+      <span class="px-3 text-gray-500 text-sm">atau</span>
+      <div class="flex-1 h-px divider-line"></div>
     </div>
 
+    <!-- Alternative Login Options -->
     <div class="space-y-3">
-      <button id="google-login-btn" class="w-full bg-white text-gray-700 font-medium py-3 rounded-lg hover:bg-gray-100 transition flex items-center justify-center">
+      <button id="google-login-btn" class="w-full btn-white font-medium py-3 rounded-lg flex items-center justify-center">
         <img src="https://www.google.com/favicon.ico" class="w-5 h-5 mr-2" alt="Google">
         Masuk dengan Google
       </button>
       
-      <a href="employee.html" class="block w-full bg-gray-700 text-white text-center font-medium py-3 rounded-lg hover:bg-gray-600 transition">
-        <i class="fas fa-user-secret mr-2"></i>
-        Masuk sebagai Employee
+      <a href="employee.html" class="block w-full btn-dark text-center font-medium py-3 rounded-lg">
+        <i class="fas fa-user-clock mr-2" style="color: #FDB913;"></i>
+        Quick Access Employee
       </a>
     </div>
 
+    <!-- Footer Links -->
     <div class="text-center mt-8">
-      <p class="text-gray-300 text-xs">
-        <a href="admin.html" class="text-white hover:underline">Dashboard Admin</a>
-        <span class="mx-2">•</span>
-        <a href="index.html" class="text-white hover:underline">Beranda</a>
+      <p class="text-gray-500 text-xs">
+        <a href="admin.html" class="link-yellow hover:underline">
+          <i class="fas fa-chart-line mr-1"></i>Dashboard Admin
+        </a>
+        <span class="mx-2 text-gray-600">•</span>
+        <a href="index.html" class="link-yellow hover:underline">
+          <i class="fas fa-home mr-1"></i>Beranda
+        </a>
+      </p>
+    </div>
+    
+    <!-- Branding -->
+    <div class="text-center mt-4">
+      <p class="text-gray-600 text-xs">
+        © 2025 <span style="color: #FDB913;" class="font-semibold">Trakindo</span> Facility Services
       </p>
     </div>
   </div>
@@ -156,6 +368,7 @@
     } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
 
     console.log('🔐 Initializing Login...');
+    console.log('🎨 Trakindo theme applied');
     
     const googleProvider = new GoogleAuthProvider();
     
@@ -423,7 +636,7 @@
         btnSpinner.classList.remove('hidden');
       } else {
         btn.disabled = false;
-        btnText.textContent = 'Masuk';
+        btnText.textContent = 'MASUK';
         btnSpinner.classList.add('hidden');
       }
     }
@@ -432,14 +645,17 @@
       const statusDiv = document.getElementById('status-message');
       const statusText = document.getElementById('status-text');
       
-      statusDiv.classList.remove('hidden', 'bg-green-500', 'bg-red-500', 'bg-yellow-500', 'text-white');
+      statusDiv.classList.remove('hidden', 'status-success', 'status-error', 'status-warning');
       
       if (type === 'success') {
-        statusDiv.classList.add('bg-green-500', 'text-white');
+        statusDiv.classList.add('status-success');
+        statusText.style.color = 'white';
       } else if (type === 'warning') {
-        statusDiv.classList.add('bg-yellow-500', 'text-white');
+        statusDiv.classList.add('status-warning');
+        statusText.style.color = '#1a1a1a';
       } else {
-        statusDiv.classList.add('bg-red-500', 'text-white');
+        statusDiv.classList.add('status-error');
+        statusText.style.color = 'white';
       }
       
       statusText.textContent = message;
