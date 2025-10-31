@@ -11,7 +11,7 @@
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="/manifest.json?v=2">
-  <meta name="theme-color" content="#1e3a8a">
+  <meta name="theme-color" content="#FDB913">
   
   <!-- ✅ Favicons - Path BENAR -->
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png?v=2">
@@ -30,7 +30,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   
   <!-- Microsoft Tiles -->
-  <meta name="msapplication-TileColor" content="#1e3a8a">
+  <meta name="msapplication-TileColor" content="#FDB913">
   <meta name="msapplication-TileImage" content="/assets/icons/icon-512.png?v=2">
   
   <!-- TailwindCSS -->
@@ -43,26 +43,68 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <style>
+    :root {
+      --trakindo-yellow: #FDB913;
+      --trakindo-dark: #1a1a1a;
+      --trakindo-gray: #2d2d2d;
+    }
+    
     body {
       font-family: 'IBM Plex Mono', monospace;
-      background: linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%);
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
       min-height: 100vh;
+      position: relative;
+    }
+    
+    /* Trakindo Yellow Accent Pattern */
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #FDB913, #FFAA00, #FDB913);
+      z-index: 1000;
     }
     
     .glass {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(45, 45, 45, 0.95);
       backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(253, 185, 19, 0.2);
+      box-shadow: 0 8px 32px rgba(253, 185, 19, 0.1);
     }
     
     .btn-3d {
-      box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+      box-shadow: 0 4px 0 rgba(0,0,0,0.3);
       transition: all 0.1s;
     }
     
     .btn-3d:active {
       transform: translateY(2px);
-      box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+      box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+    }
+    
+    .btn-yellow {
+      background: linear-gradient(135deg, #FDB913 0%, #FFAA00 100%);
+      color: #1a1a1a;
+      font-weight: 600;
+    }
+    
+    .btn-yellow:hover {
+      background: linear-gradient(135deg, #FFAA00 0%, #FDB913 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(253, 185, 19, 0.4);
+    }
+    
+    .btn-dark {
+      background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+      border: 1px solid rgba(253, 185, 19, 0.3);
+    }
+    
+    .btn-dark:hover {
+      background: linear-gradient(135deg, #3d3d3d 0%, #2a2a2a 100%);
+      border-color: rgba(253, 185, 19, 0.5);
     }
     
     .fade-in {
@@ -74,11 +116,11 @@
       to { opacity: 1; transform: translateY(0); }
     }
     
-    /* ✅ UPDATED Logo Styles - Ukuran lebih kecil dan spacing lebih rapat */
+    /* Logo Styles with Trakindo theme */
     .logo-container {
       position: relative;
-      width: 150px;  /* Diperkecil dari 200px */
-      height: 150px; /* Diperkecil dari 200px */
+      width: 150px;
+      height: 150px;
       margin: 0 auto;
       display: flex;
       align-items: center;
@@ -89,23 +131,24 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
-      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+      filter: drop-shadow(0 4px 12px rgba(253, 185, 19, 0.3));
       transition: transform 0.3s ease;
     }
     
     .logo-main:hover {
       transform: scale(1.05);
+      filter: drop-shadow(0 6px 20px rgba(253, 185, 19, 0.5));
     }
     
     .logo-fallback {
       width: 100%;
       height: 100%;
-      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      background: linear-gradient(135deg, #FDB913 0%, #FFAA00 100%);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 8px 24px rgba(253, 185, 19, 0.4);
     }
     
     .logo-pulse {
@@ -117,24 +160,59 @@
       50% { opacity: 0.9; transform: scale(1.05); }
     }
     
-    /* Header section dengan spacing yang lebih baik */
-    .header-section {
-      margin-bottom: 1.5rem;
+    /* Text with yellow accent */
+    .text-trakindo {
+      color: #FDB913;
     }
     
-    .header-title {
-      margin-top: 0.75rem; /* Spacing dari logo ke title */
-      margin-bottom: 0.25rem;
+    .text-trakindo-light {
+      color: #FFAA00;
+    }
+    
+    /* Border accent */
+    .border-trakindo {
+      border-color: rgba(253, 185, 19, 0.3);
+    }
+    
+    /* Time display box */
+    .time-display {
+      background: linear-gradient(135deg, rgba(253, 185, 19, 0.1) 0%, rgba(253, 185, 19, 0.05) 100%);
+      border: 1px solid rgba(253, 185, 19, 0.2);
     }
     
     /* PWA Install Banner */
     .install-banner {
       animation: slideUp 0.5s ease-out;
+      background: linear-gradient(135deg, #FDB913 0%, #FFAA00 100%);
     }
     
     @keyframes slideUp {
       from { transform: translateY(100%); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* Status colors */
+    .status-online { color: #10b981; }
+    .status-warning { color: #FDB913; }
+    .status-error { color: #ef4444; }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #FDB913;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #FFAA00;
     }
   </style>
 </head>
@@ -144,7 +222,7 @@
   <!-- Main Container -->
   <div class="w-full max-w-md fade-in">
     
-    <!-- ✅ UPDATED LOGO & HEADER SECTION - Spacing yang lebih rapat -->
+    <!-- Logo & Header Section -->
     <div class="text-center mb-4">
       <!-- Company Logo -->
       <div class="logo-container">
@@ -157,16 +235,16 @@
         >
       </div>
       
-      <!-- Title section - Langsung setelah logo dengan margin top negatif untuk mendekatkan -->
+      <!-- Title section -->
       <div class="mt-2">
-        <h1 class="text-3xl font-bold text-white leading-tight">
+        <h1 class="text-3xl font-bold text-trakindo leading-tight">
           ATTENDANCE TU ADMIN
         </h1>
         <p class="text-gray-300 text-lg mt-1">
           Digital Attendance System
         </p>
         <p class="text-gray-400 text-sm mt-1">
-          <i class="fas fa-shield-alt mr-1"></i>
+          <i class="fas fa-shield-alt mr-1 text-trakindo-light"></i>
           Secure & Modern Attendance System
         </p>
       </div>
@@ -178,27 +256,27 @@
       <!-- Welcome Message -->
       <div class="text-center mb-6">
         <h2 class="text-xl font-semibold text-white mb-2">
-          Welcome
+          Welcome to <span class="text-trakindo">Trakindo</span>
         </h2>
-        <p class="text-gray-200 text-sm">
+        <p class="text-gray-400 text-sm">
           Select the menu your access
         </p>
       </div>
       
       <!-- Current Time Display -->
-      <div class="bg-black bg-opacity-30 rounded-lg p-4 mb-6">
+      <div class="time-display rounded-lg p-4 mb-6">
         <div class="text-center">
-          <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Current Time</p>
+          <p class="text-trakindo text-xs uppercase tracking-wider mb-1 font-semibold">Current Time</p>
           <p id="current-time" class="text-3xl font-bold text-white tabular-nums"></p>
-          <p id="current-date" class="text-sm text-gray-300 mt-1"></p>
+          <p id="current-date" class="text-sm text-gray-400 mt-1"></p>
         </div>
       </div>
       
       <!-- User Status (if logged in) -->
-      <div id="user-status" class="hidden mb-4 p-3 bg-blue-900 bg-opacity-30 rounded-lg border border-blue-500">
+      <div id="user-status" class="hidden mb-4 p-3 bg-gray-800 bg-opacity-50 rounded-lg border border-trakindo">
         <div class="flex items-center justify-between">
           <div class="flex items-center">
-            <i class="fas fa-user-circle text-blue-400 text-xl mr-2"></i>
+            <i class="fas fa-user-circle text-trakindo text-xl mr-2"></i>
             <div>
               <p class="text-white text-sm font-semibold" id="user-email">-</p>
               <p class="text-gray-400 text-xs" id="user-role">-</p>
@@ -214,55 +292,55 @@
       <!-- Menu Buttons -->
       <div class="space-y-3">
         
-        <!-- Employee Attendance -->
+        <!-- Employee Attendance - Primary Button -->
         <a href="login.html?redirect=employee" 
-           class="btn-3d w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-4 px-6 rounded-lg transition-all block">
+           class="btn-3d btn-yellow w-full py-4 px-6 rounded-lg transition-all block">
           <div class="flex items-center justify-between">
             <div class="flex items-center">
               <i class="fas fa-user-clock text-2xl mr-3"></i>
               <div class="text-left">
                 <p class="font-semibold text-base">Employee Attendance</p>
-                <p class="text-xs opacity-90">Login required • Camera & GPS tracking</p>
+                <p class="text-xs opacity-80">Login required • Camera & GPS tracking</p>
               </div>
             </div>
             <i class="fas fa-chevron-right"></i>
           </div>
         </a>
         
-        <!-- Admin Dashboard -->
+        <!-- Admin Dashboard - Secondary Button -->
         <a href="login.html?logout=true&redirect=admin" 
-           class="btn-3d w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-4 px-6 rounded-lg transition-all block">
+           class="btn-3d btn-dark w-full text-white py-4 px-6 rounded-lg transition-all block">
           <div class="flex items-center justify-between">
             <div class="flex items-center">
-              <i class="fas fa-chart-line text-2xl mr-3"></i>
+              <i class="fas fa-chart-line text-2xl mr-3 text-trakindo"></i>
               <div class="text-left">
                 <p class="font-semibold text-base">Admin Dashboard</p>
-                <p class="text-xs opacity-90">Real-time monitoring & reports</p>
+                <p class="text-xs opacity-90 text-gray-400">Real-time monitoring & reports</p>
               </div>
             </div>
-            <i class="fas fa-chevron-right"></i>
+            <i class="fas fa-chevron-right text-trakindo"></i>
           </div>
         </a>
         
         <!-- Staff Login -->
         <button onclick="goToLogin()" 
-                class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-all">
-          <i class="fas fa-sign-in-alt mr-2"></i>
+                class="w-full bg-gray-800 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-lg transition-all border border-gray-700 hover:border-trakindo">
+          <i class="fas fa-sign-in-alt mr-2 text-trakindo"></i>
           Login dengan Email
         </button>
         
       </div>
       
       <!-- Divider -->
-      <div class="my-6 border-t border-gray-600"></div>
+      <div class="my-6 border-t border-gray-700"></div>
       
       <!-- Quick Links -->
       <div class="grid grid-cols-2 gap-3 text-center">
-        <a href="#" onclick="showHelp(); return false;" class="text-gray-300 hover:text-white text-sm transition">
+        <a href="#" onclick="showHelp(); return false;" class="text-gray-400 hover:text-trakindo text-sm transition">
           <i class="fas fa-question-circle block text-lg mb-1"></i>
           <span class="text-xs">Bantuan</span>
         </a>
-        <a href="#" onclick="showInfo(); return false;" class="text-gray-300 hover:text-white text-sm transition">
+        <a href="#" onclick="showInfo(); return false;" class="text-gray-400 hover:text-trakindo text-sm transition">
           <i class="fas fa-info-circle block text-lg mb-1"></i>
           <span class="text-xs">Info</span>
         </a>
@@ -272,43 +350,43 @@
     <!-- System Info -->
     <div class="text-center mt-6 text-gray-400 text-sm glass rounded-lg p-4">
       <p class="flex items-center justify-center">
-        <i class="fas fa-server mr-2"></i>
-        <span id="system-status" class="text-green-400">System Online</span>
+        <i class="fas fa-server mr-2 text-trakindo"></i>
+        <span id="system-status" class="status-online">System Online</span>
       </p>
       <p class="mt-2 text-xs">
-        <i class="fas fa-database mr-1"></i>
+        <i class="fas fa-database mr-1 text-trakindo"></i>
         Firebase Project: <span class="text-gray-300 font-mono">apptuadmin</span>
       </p>
       <p class="mt-2 text-xs" id="pwa-status">
-        <i class="fas fa-mobile-alt mr-1"></i>
+        <i class="fas fa-mobile-alt mr-1 text-trakindo"></i>
         <span class="text-gray-300">PWA Ready</span>
       </p>
     </div>
     
     <!-- Footer -->
     <div class="text-center mt-6 text-gray-500 text-xs">
-      <p>&copy; 2025 Facility Maintenance Services</p>
-      <p class="mt-1">Powered by General Service TU</p>
+      <p>&copy; 2025 <span class="text-trakindo font-semibold">Trakindo</span></p>
+      <p class="mt-1">Facility Maintenance Services - General Service TU</p>
     </div>
   </div>
   
-  <!-- ✅ PWA Install Banner -->
-  <div id="install-banner" class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-2xl hidden install-banner z-50">
+  <!-- PWA Install Banner -->
+  <div id="install-banner" class="fixed bottom-0 left-0 right-0 install-banner text-black p-4 shadow-2xl hidden z-50">
     <div class="max-w-md mx-auto flex items-center justify-between">
       <div class="flex items-center">
-        <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center mr-3">
-          <i class="fas fa-download text-blue-600 text-xl"></i>
+        <div class="w-12 h-12 bg-black rounded-lg flex items-center justify-center mr-3">
+          <i class="fas fa-download text-trakindo text-xl"></i>
         </div>
         <div>
-          <p class="font-semibold text-sm">Install ApptU App</p>
-          <p class="text-xs opacity-90">Add to home screen for quick access</p>
+          <p class="font-semibold text-sm">Install Trakindo App</p>
+          <p class="text-xs opacity-80">Add to home screen for quick access</p>
         </div>
       </div>
       <div class="flex gap-2">
-        <button id="install-btn" class="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition">
+        <button id="install-btn" class="bg-black text-trakindo px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-900 transition">
           Install
         </button>
-        <button id="dismiss-install-btn" class="text-white p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition">
+        <button id="dismiss-install-btn" class="text-black p-2 hover:bg-black hover:bg-opacity-20 rounded-lg transition">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -316,10 +394,10 @@
   </div>
   
   <!-- Help Modal -->
-  <div id="help-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div id="help-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
     <div class="glass rounded-2xl p-6 max-w-md m-4">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-bold text-white">
+        <h3 class="text-xl font-bold text-trakindo">
           <i class="fas fa-book-open mr-2"></i>
           Panduan Penggunaan
         </h3>
@@ -329,12 +407,12 @@
       </div>
       
       <div class="space-y-4 text-gray-300 text-sm">
-        <div class="bg-blue-900 bg-opacity-20 p-3 rounded-lg">
+        <div class="bg-gray-800 bg-opacity-50 p-3 rounded-lg border-l-4 border-trakindo">
           <p class="font-semibold text-white flex items-center mb-2">
-            <i class="fas fa-user-clock mr-2 text-blue-400"></i>
+            <i class="fas fa-user-clock mr-2 text-trakindo"></i>
             Untuk Karyawan
           </p>
-          <ol class="list-decimal list-inside ml-2 space-y-1 text-xs">
+          <ol class="list-decimal list-inside ml-2 space-y-1 text-xs text-gray-400">
             <li>Klik "Employee Attendance"</li>
             <li>Login dengan akun yang diberikan HR</li>
             <li>Izinkan akses kamera & lokasi</li>
@@ -343,12 +421,12 @@
           </ol>
         </div>
         
-        <div class="bg-purple-900 bg-opacity-20 p-3 rounded-lg">
+        <div class="bg-gray-800 bg-opacity-50 p-3 rounded-lg border-l-4 border-trakindo">
           <p class="font-semibold text-white flex items-center mb-2">
-            <i class="fas fa-chart-line mr-2 text-purple-400"></i>
+            <i class="fas fa-chart-line mr-2 text-trakindo"></i>
             Untuk Admin/HR
           </p>
-          <ol class="list-decimal list-inside ml-2 space-y-1 text-xs">
+          <ol class="list-decimal list-inside ml-2 space-y-1 text-xs text-gray-400">
             <li>Klik "Admin Dashboard"</li>
             <li>Login dengan akun admin</li>
             <li>Kelola karyawan via "Kelola Karyawan"</li>
@@ -358,20 +436,20 @@
           </ol>
         </div>
         
-        <div class="bg-green-900 bg-opacity-20 p-3 rounded-lg">
+        <div class="bg-gray-800 bg-opacity-50 p-3 rounded-lg border-l-4 border-trakindo">
           <p class="font-semibold text-white flex items-center mb-2">
-            <i class="fas fa-mobile-alt mr-2 text-green-400"></i>
+            <i class="fas fa-mobile-alt mr-2 text-trakindo"></i>
             Install Aplikasi (PWA)
           </p>
-          <ul class="text-xs space-y-1 ml-2">
-            <li>• <strong>Desktop:</strong> Klik icon install di address bar</li>
-            <li>• <strong>Android:</strong> Menu → Add to Home Screen</li>
-            <li>• <strong>iOS:</strong> Share → Add to Home Screen</li>
+          <ul class="text-xs space-y-1 ml-2 text-gray-400">
+            <li>• <strong class="text-trakindo">Desktop:</strong> Klik icon install di address bar</li>
+            <li>• <strong class="text-trakindo">Android:</strong> Menu → Add to Home Screen</li>
+            <li>• <strong class="text-trakindo">iOS:</strong> Share → Add to Home Screen</li>
           </ul>
         </div>
       </div>
       
-      <button onclick="closeHelp()" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition">
+      <button onclick="closeHelp()" class="mt-4 w-full btn-yellow py-2 rounded-lg transition font-semibold">
         <i class="fas fa-check mr-2"></i>
         Mengerti
       </button>
@@ -432,7 +510,7 @@
       // Replace with fallback logo (icon version)
       logoElement.outerHTML = `
         <div class="logo-fallback logo-pulse">
-          <i class="fas fa-building text-5xl text-white"></i>
+          <i class="fas fa-building text-5xl text-black"></i>
         </div>
       `;
     }
@@ -458,12 +536,12 @@
           .then(registration => {
             console.log('✅ Service Worker registered:', registration.scope);
             document.getElementById('pwa-status').innerHTML = 
-              '<i class="fas fa-check-circle mr-1 text-green-400"></i><span class="text-green-400">PWA Active</span>';
+              '<i class="fas fa-check-circle mr-1 status-online"></i><span class="status-online">PWA Active</span>';
           })
           .catch(error => {
             console.error('❌ Service Worker registration failed:', error);
             document.getElementById('pwa-status').innerHTML = 
-              '<i class="fas fa-exclamation-triangle mr-1 text-yellow-400"></i><span class="text-yellow-400">PWA Error</span>';
+              '<i class="fas fa-exclamation-triangle mr-1 status-warning"></i><span class="status-warning">PWA Error</span>';
           });
       });
     }
@@ -514,14 +592,14 @@
       console.log('✅ PWA installed');
       installBanner.classList.add('hidden');
       document.getElementById('pwa-status').innerHTML = 
-        '<i class="fas fa-check-circle mr-1 text-green-400"></i><span class="text-green-400">PWA Installed</span>';
+        '<i class="fas fa-check-circle mr-1 status-online"></i><span class="status-online">PWA Installed</span>';
     });
     
     // Check if running as PWA
     if (window.matchMedia('(display-mode: standalone)').matches) {
       console.log('✅ Running as PWA');
       document.getElementById('pwa-status').innerHTML = 
-        '<i class="fas fa-mobile-alt mr-1 text-blue-400"></i><span class="text-blue-400">Running as App</span>';
+        '<i class="fas fa-mobile-alt mr-1 text-trakindo"></i><span class="text-trakindo">Running as App</span>';
     }
     
     // ========================================
@@ -609,7 +687,7 @@
   Email: support@trakindo.com
   Web: https://apptuadmin.web.app
 
-© 2025 Facility Maintenance Services
+© 2025 Trakindo - Facility Maintenance Services
       `.trim();
       
       alert(info);
@@ -625,10 +703,10 @@
       
       if (hour >= 6 && hour < 18) {
         statusEl.textContent = 'System Online';
-        statusEl.className = 'text-green-400';
+        statusEl.className = 'status-online';
       } else {
         statusEl.textContent = 'After Hours';
-        statusEl.className = 'text-yellow-400';
+        statusEl.className = 'status-warning';
       }
     }
     
@@ -657,13 +735,13 @@
     // ========================================
     window.addEventListener('online', () => {
       document.getElementById('system-status').textContent = 'System Online';
-      document.getElementById('system-status').className = 'text-green-400';
+      document.getElementById('system-status').className = 'status-online';
       console.log('🌐 Online');
     });
     
     window.addEventListener('offline', () => {
       document.getElementById('system-status').textContent = 'Offline Mode';
-      document.getElementById('system-status').className = 'text-red-400';
+      document.getElementById('system-status').className = 'status-error';
       console.log('📡 Offline');
     });
     
@@ -673,6 +751,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       console.log('✅ Index page ready');
       console.log('📱 PWA features enabled');
+      console.log('🎨 Trakindo theme applied');
     });
     
     // Make functions global
