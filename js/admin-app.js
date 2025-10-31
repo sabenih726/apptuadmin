@@ -15,7 +15,8 @@ import {
   onSnapshot,
   doc,
   deleteDoc,
-  Timestamp
+  Timestamp,
+  getDoc
 } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
 
 // Import dari firebase-config.js
@@ -83,6 +84,55 @@ let unsubscribeSnapshot = null;
 let currentUserRole = null;
 let filteredRecords = [];
 let isFiltered = false;
+let employeeDataCache = {}; // Cache untuk data karyawan
+
+// ========================================
+// GET EMPLOYEE NAME FROM EMAIL OR FIREBASE
+// ========================================
+async function getEmployeeName(userId, email) {
+  try {
+    // Check cache first
+    if (employeeDataCache[userId]) {
+      return employeeDataCache[userId];
+    }
+    
+    // Jika ada email, ekstrak nama dari email
+    if (email) {
+      // Contoh: john.doe@company.com -> John Doe
+      const namePart = email.split('@')[0];
+      const formattedName = namePart
+        .split('.')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(' ');
+      
+      employeeDataCache[userId] = formattedName;
+      return formattedName;
+    }
+    
+    // Try to get from employees collection if exists
+    try {
+      const employeeDoc = await getDoc(doc(db, 'employees', userId));
+      if (employeeDoc.exists()) {
+        const data = employeeDoc.data();
+        const employeeName = data.fullName || data.name || data.displayName || email || userId;
+        employeeDataCache[userId] = employeeName;
+        return employeeName;
+      }
+    } catch (err) {
+      // Employees collection might not exist
+      console.log('No employee data found for:', userId);
+    }
+    
+    // Fallback to userId last 6 chars
+    const fallbackName = `Employee-${userId.slice(-6)}`;
+    employeeDataCache[userId] = fallbackName;
+    return fallbackName;
+    
+  } catch (error) {
+    console.error('Error getting employee name:', error);
+    return email || `Employee-${userId.slice(-6)}`;
+  }
+}
 
 // ========================================
 // SHOW UNAUTHORIZED PAGE
@@ -207,7 +257,7 @@ async function initAuth() {
 }
 
 // ========================================
-// LOAD DATA
+// LOAD DATA WITH ENHANCED USER INFO
 // ========================================
 function loadData() {
   try {
@@ -224,12 +274,26 @@ function loadData() {
     );
     
     unsubscribeSnapshot = onSnapshot(q, 
-      (snapshot) => {
-        allRecords = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          timestamp: doc.data().timestamp?.toDate() || new Date()
-        }));
+      async (snapshot) => {
+        // Process records with employee names
+        const processedRecords = await Promise.all(
+          snapshot.docs.map(async (doc) => {
+            const data = doc.data();
+            const timestamp = data.timestamp?.toDate() || new Date();
+            
+            // Get employee name
+            const employeeName = await getEmployeeName(data.userId, data.userEmail);
+            
+            return {
+              id: doc.id,
+              ...data,
+              timestamp,
+              employeeName // Add employee name to record
+            };
+          })
+        );
+        
+        allRecords = processedRecords;
         
         console.log(`📊 Loaded ${allRecords.length} records`);
         
@@ -278,7 +342,7 @@ function updateStats(data = null) {
 }
 
 // ========================================
-// RENDER TABLE
+// RENDER TABLE WITH EMPLOYEE NAMES
 // ========================================
 function renderTable(data = null) {
   if (!DOM.tbody) return;
@@ -302,6 +366,9 @@ function renderTable(data = null) {
     const typeColor = r.type === 'masuk' ? '#10b981' : '#f59e0b';
     const typeIcon = r.type === 'masuk' ? 'fa-sign-in-alt' : 'fa-sign-out-alt';
     
+    // Use employee name if available
+    const displayName = r.employeeName || r.userEmail || r.userId?.slice(-8) || 'Guest';
+    
     return `
       <tr class="table-row border-b border-gray-800 cursor-pointer transition hover:bg-gray-800" onclick="showDetail('${r.id}')">
         <td class="p-3 text-sm">
@@ -321,7 +388,7 @@ function renderTable(data = null) {
         </td>
         <td class="p-3 text-sm">
           <i class="fas fa-user mr-1 text-gray-500"></i>
-          ${r.userEmail || r.userId?.slice(-8) || 'Guest'}
+          ${displayName}
         </td>
         <td class="p-3 text-sm text-gray-400" title="${r.locationName || 'Unknown'}">
           <i class="fas fa-map-marker-alt mr-1"></i>
@@ -342,7 +409,7 @@ function renderTable(data = null) {
 }
 
 // ========================================
-// EXPORT TO EXCEL
+// EXPORT TO EXCEL WITH PROPER USER INFO
 // ========================================
 function exportToExcel() {
   try {
@@ -368,17 +435,46 @@ function exportToExcel() {
       return;
     }
     
-    // Prepare data for Excel
-    const excelData = dataToExport.map(record => ({
-      'Tanggal': record.timestamp.toLocaleDateString('id-ID'),
-      'Waktu': record.timestamp.toLocaleTimeString('id-ID'),
-      'Status': record.type?.toUpperCase() || '-',
-      'User ID': record.userId || '-',
-      'Email': record.userEmail || '-',
-      'Lokasi': record.locationName || 'Unknown',
-      'Latitude': record.coordinates?.latitude || '-',
-      'Longitude': record.coordinates?.longitude || '-'
-    }));
+    // Prepare data for Excel dengan nama karyawan yang proper
+    const excelData = dataToExport.map(record => {
+      // Extract employee identifier
+      let employeeId = '';
+      let employeeName = '';
+      
+      if (record.employeeName) {
+        employeeName = record.employeeName;
+      } else if (record.userEmail) {
+        // Extract name from email
+        const emailName = record.userEmail.split('@')[0];
+        employeeName = emailName
+          .split('.')
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+          .join(' ');
+      } else {
+        employeeName = `Employee-${record.userId?.slice(-6) || 'Unknown'}`;
+      }
+      
+      // Generate employee ID from email or use formatted ID
+      if (record.userEmail) {
+        // Use email prefix as employee ID (e.g., john.doe@company.com -> JOHN.DOE)
+        employeeId = record.userEmail.split('@')[0].toUpperCase();
+      } else {
+        // Use last 8 chars of userId as fallback
+        employeeId = `EMP-${record.userId?.slice(-8) || 'UNKNOWN'}`;
+      }
+      
+      return {
+        'Tanggal': record.timestamp.toLocaleDateString('id-ID'),
+        'Waktu': record.timestamp.toLocaleTimeString('id-ID'),
+        'Status': record.type?.toUpperCase() || '-',
+        'Nama Karyawan': employeeName,
+        'ID Karyawan': employeeId,
+        'Email': record.userEmail || '-',
+        'Lokasi': record.locationName || 'Unknown',
+        'Latitude': record.coordinates?.latitude || '-',
+        'Longitude': record.coordinates?.longitude || '-'
+      };
+    });
     
     // Create workbook
     const ws = XLSX.utils.json_to_sheet(excelData);
@@ -390,7 +486,8 @@ function exportToExcel() {
       { wch: 12 }, // Tanggal
       { wch: 10 }, // Waktu
       { wch: 8 },  // Status
-      { wch: 15 }, // User ID
+      { wch: 20 }, // Nama Karyawan
+      { wch: 15 }, // ID Karyawan
       { wch: 25 }, // Email
       { wch: 40 }, // Lokasi
       { wch: 12 }, // Latitude
@@ -398,20 +495,53 @@ function exportToExcel() {
     ];
     ws['!cols'] = colWidths;
     
-    // Generate filename with date
+    // Generate filename with date range
     const today = new Date();
     const dateStr = today.toISOString().split('T')[0];
-    const filename = `Absensi_${dateStr}.xlsx`;
+    
+    let filename = `Absensi_${dateStr}`;
+    
+    // Add date range to filename if filtered
+    if (isFiltered && DOM.dateFrom?.value && DOM.dateTo?.value) {
+      const fromDate = new Date(DOM.dateFrom.value).toISOString().split('T')[0];
+      const toDate = new Date(DOM.dateTo.value).toISOString().split('T')[0];
+      filename = `Absensi_${fromDate}_to_${toDate}`;
+    }
+    
+    filename += '.xlsx';
     
     // Download file
     XLSX.writeFile(wb, filename);
     
     console.log(`✅ Exported ${dataToExport.length} records to ${filename}`);
     
+    // Show success message
+    showExportSuccess(dataToExport.length, filename);
+    
   } catch (error) {
     console.error('❌ Export error:', error);
     alert('Gagal export ke Excel: ' + error.message);
   }
+}
+
+// ========================================
+// SHOW EXPORT SUCCESS MESSAGE
+// ========================================
+function showExportSuccess(recordCount, filename) {
+  // Create temporary success notification
+  const notification = document.createElement('div');
+  notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center';
+  notification.innerHTML = `
+    <i class="fas fa-check-circle mr-2"></i>
+    <span>Berhasil export ${recordCount} data ke ${filename}</span>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Remove after 3 seconds
+  setTimeout(() => {
+    notification.remove();
+  }, 3000);
 }
 
 // ========================================
@@ -513,7 +643,7 @@ function formatDate(dateStr) {
 }
 
 // ========================================
-// SHOW DETAIL
+// SHOW DETAIL WITH EMPLOYEE NAME
 // ========================================
 window.showDetail = function(id) {
   // Find record from all records (not just filtered)
@@ -542,7 +672,9 @@ window.showDetail = function(id) {
     DOM.verifTime.textContent = record.timestamp.toLocaleString('id-ID');
   }
   if (DOM.verifUser) {
-    DOM.verifUser.textContent = record.userEmail || record.userId?.slice(-8) || 'Anonymous';
+    // Display employee name instead of email/ID
+    const displayName = record.employeeName || record.userEmail || record.userId?.slice(-8) || 'Anonymous';
+    DOM.verifUser.textContent = displayName;
   }
   
   if (DOM.verifCoords) {
@@ -563,6 +695,13 @@ window.showDetail = function(id) {
         <div class="flex items-center text-xs text-gray-500">
           <i class="fas fa-crosshairs mr-2"></i>
           <span>${record.coordinates.latitude.toFixed(6)}, ${record.coordinates.longitude.toFixed(6)}</span>
+        </div>
+        ` : ''}
+        
+        ${record.userEmail ? `
+        <div class="flex items-center text-xs text-gray-500">
+          <i class="fas fa-envelope mr-2"></i>
+          <span>${record.userEmail}</span>
         </div>
         ` : ''}
       </div>
@@ -631,7 +770,8 @@ function refreshData() {
     DOM.refreshBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin mr-1"></i> Refreshing...';
     DOM.refreshBtn.disabled = true;
     
-    // Reset filter and reload
+    // Clear cache and reload
+    employeeDataCache = {};
     resetFilter();
     
     setTimeout(() => {
